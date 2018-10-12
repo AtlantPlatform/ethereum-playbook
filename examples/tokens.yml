@@ -1,0 +1,95 @@
+---
+INVENTORY:
+  testnet:
+    - node-dev1.atlant.io:8545
+    - node-dev2.atlant.io:8545
+    - node-dev3.atlant.io:8545
+
+  genesis:
+    - localhost:8545
+
+WALLETS:
+  alice:
+    privkey: "41022453C949BAB4821358D2FA5B93CA6B046EFFA7B7A19765ACF8FD6AE8FA9B"
+
+  bob:
+    keyfile: "var/chain/keystore/bob.json"
+    password: "1234"
+
+  foo3:
+    address: 0x3b47427740b5dedf1bfae36862a78d7134609607
+    keystore: "var/chain/keystore"
+    password: "1234"
+
+CONTRACTS:
+  property-token:
+    name: PropertyToken
+    sol: contracts/PropertyToken.sol
+    instances:
+      - &PTO123
+        contract: property-token
+        address: 0x0
+      - &PTO124
+        contract: property-token
+        address: 0x0
+
+READ:
+  eth-balances:
+    method: eth_getBalance
+    params:
+      - @@
+
+  get-owner:
+    instance: *PTO123
+    method: owner
+
+  token-balances:
+    instance: *PTO123
+    method: balanceOf
+    params:
+      - @@
+WRITE:
+  send-100-wei:
+    wallet: alice
+    to: bob
+    value: 100
+
+  send-100-gwei:
+    wallet: alice
+    to: bob
+    value: 100 gwei
+
+  send-1-eth:
+    wallet: alice
+    to: bob
+    value: 1 ETH
+
+  deploy-property-token:
+    wallet: bob
+    deploy: property-token
+    params:
+      - "Atlant Property Token 123"
+      - "PTO123"
+      - 50 * 1e6 * 1e18
+
+  mint-100-tokens:
+    wallet: bob
+    instance: *PTO123
+    method: mint
+    params:
+      - @bob
+
+  transfer-50-tokens:
+    wallet: bob
+    instance: *PTO123
+    method: transfer
+    params:
+      - @bob
+      - @alice
+      - 50 * 1e18
+
+  # same as transfer, but unified with ETH send
+  send-25-tokens:
+    wallet: bob
+    to: alice
+    value: 25 * 1e18 PTO123

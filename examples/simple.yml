@@ -1,0 +1,52 @@
+---
+INVENTORY:
+  genesis:
+    - var/chain/geth.ipc
+
+WALLETS:
+  alice:
+    # address: not known
+    password: "1234"
+
+TARGETS:
+  run:
+    - new-account
+    - balance
+    - miner-rebase
+    - miner-start
+    - wait: 20s
+    - miner-stop
+    - balance
+    - burn-all
+    - await: burn-all
+    - txinfo: burn-all
+    - balance
+
+READ:
+  balance:
+    wallet: alice
+    method: eth_getBalance
+    params:
+      - @@
+
+WRITE:
+  burn-all:
+    wallet: alice
+    to: 0x0
+    value: @alice.balance
+
+PERSONAL:
+  new-account:
+    method: personal_newAccount
+    params:
+      - @alice.password
+    output:
+      - @alice.address
+  miner-rebase:
+    method: miner_setEtherbase
+    params:
+      - @alice
+  miner-start:
+    method: miner_start
+  miner-stop:
+    method: miner_stop
