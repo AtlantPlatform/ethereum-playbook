@@ -48,6 +48,7 @@ READ:
     method: balanceOf
     params:
       - @@
+      
 WRITE:
   send-100-wei:
     wallet: alice

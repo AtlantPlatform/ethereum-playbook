@@ -5,6 +5,7 @@ import log "github.com/Sirupsen/logrus"
 type Spec struct {
 	Inventory Inventory `yaml:"INVENTORY"`
 	Wallets   Wallets   `yaml:"WALLETS"`
+	Contracts Contracts `yaml:"CONTRACTS"`
 	Targets   Targets   `yaml:"TARGETS"`
 
 	ReadCmds     ReadCmds     `yaml:"READ"`
@@ -36,6 +37,12 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 	} else if spec.WriteCmds != nil || spec.PersonalCmds != nil {
 		validateLog.Errorln("spec must contain the WALLET section, if WRITE or PERSONAL sections are provided")
 		return false
+	}
+	if spec.Contracts != nil {
+		if !spec.Contracts.Validate(ctx, spec) {
+			validateLog.Errorln("contracts spec validation failed")
+			return false
+		}
 	}
 	if spec.PersonalCmds != nil {
 		if !spec.PersonalCmds.Validate(ctx, spec) {

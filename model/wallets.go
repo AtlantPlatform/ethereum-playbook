@@ -60,7 +60,7 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 	})
 	if len(spec.Address) > 0 {
 		if spec.Address != "0x0" && !common.IsHexAddress(spec.Address) {
-			validateLog.Errorln("address is not a valid Ethereum address (must be hex string starting from 0x)")
+			validateLog.Errorln("address is not valid (must be hex string starting from 0x)")
 			return false
 		}
 	}
