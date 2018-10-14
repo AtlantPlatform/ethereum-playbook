@@ -1,12 +1,12 @@
 ---
 INVENTORY:
   testnet:
-    - node-dev1.atlant.io:8545
-    - node-dev2.atlant.io:8545
-    - node-dev3.atlant.io:8545
+    - http://node-dev1.atlant.io:8545
+    - http://node-dev2.atlant.io:8545
+    - http://node-dev3.atlant.io:8545
 
   genesis:
-    - localhost:8545
+    - var/chain/geth.ipc
 
 WALLETS:
   alice:

@@ -20,12 +20,14 @@ import (
 var app = cli.App("ethereum-playbook", "Ethereum contracts deployment and management tool.")
 
 var (
-	specPath = app.StringOpt("f file", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
-	solcPath = app.StringOpt("s solc", "solc", "Name or path of Solidity compiler (solc, not solcjs)")
+	specPath   = app.StringOpt("f file", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
+	solcPath   = app.StringOpt("s solc", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
+	nodeGroup  = app.StringOpt("g group", "genesis", "Inventory group name, corresponding to Geth nodes.")
+	appCommand = app.StringArg("COMMAND", "", "Specify a command or target to run. If empty, will only verify spec.")
 )
 
 func main() {
-	app.Spec = "[-f]"
+	app.Spec = "[-f] [-s] [-g] [COMMAND]"
 	app.Action = func() {
 		var spec *model.Spec
 		mainLog := log.WithFields(log.Fields{
@@ -55,7 +57,8 @@ func main() {
 			mainLog.WithError(err).Fatalln("failed to get absolute path of the spec file")
 		}
 		specDir := filepath.Dir(absSpecPath)
-		ctx := model.NewAppContext(context.Background(), specDir, solcCompiler, ethfw.NewKeyCache())
+		ctx := model.NewAppContext(context.Background(), *appCommand, *nodeGroup,
+			specDir, solcCompiler, ethfw.NewKeyCache())
 		if ok := spec.Validate(ctx); !ok {
 			os.Exit(-1)
 		}

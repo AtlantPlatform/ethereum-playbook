@@ -18,12 +18,14 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 		"model": "Spec",
 		"func":  "Validate",
 	})
-	if spec.Inventory == nil {
-		validateLog.Errorln("spec must contain INVENTORY section")
-		return false
-	} else if !spec.Inventory.Validate(ctx, spec) {
-		validateLog.Errorln("inventory spec validation failed")
-		return false
+	if len(ctx.AppCommand()) > 0 {
+		if spec.Inventory == nil {
+			validateLog.Errorln("spec must contain INVENTORY section")
+			return false
+		} else if !spec.Inventory.Validate(ctx, spec) {
+			validateLog.Errorln("inventory spec validation failed")
+			return false
+		}
 	}
 	if spec.ReadCmds == nil && spec.WriteCmds == nil && spec.PersonalCmds == nil {
 		validateLog.Errorln("spec must contain at least one of READ, WRITE or PERSONAL sections")

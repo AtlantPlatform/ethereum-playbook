@@ -11,13 +11,23 @@ type AppContext struct {
 	context.Context
 }
 
-func NewAppContext(ctx context.Context,
+func NewAppContext(ctx context.Context, appCommand string, nodeGroup string,
 	specDir string, solcCompiler sol.Compiler, keycache ethfw.KeyCache) AppContext {
 	ctx = context.WithValue(ctx, "prefix", "playbook")
+	ctx = context.WithValue(ctx, "cmd", appCommand)
+	ctx = context.WithValue(ctx, "group", nodeGroup)
 	ctx = context.WithValue(ctx, "specdir", specDir)
 	ctx = context.WithValue(ctx, "keycache", keycache)
 	ctx = context.WithValue(ctx, "sol", solcCompiler)
 	return AppContext{ctx}
+}
+
+func (ctx AppContext) AppCommand() string {
+	return ctx.Value("cmd").(string)
+}
+
+func (ctx AppContext) NodeGroup() string {
+	return ctx.Value("group").(string)
 }
 
 func (ctx AppContext) SpecDir() string {
