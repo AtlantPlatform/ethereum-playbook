@@ -6,6 +6,7 @@ import (
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
 	log "github.com/Sirupsen/logrus"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -86,7 +87,8 @@ type ContractInstanceSpec struct {
 	Name    string `yaml:"contract"`
 	Address string `yaml:"address"`
 
-	binding *ethfw.BoundContract `yaml:"-"`
+	binding     *ethfw.BoundContract `yaml:"-"`
+	tokenSymbol string               `yaml:"-"`
 }
 
 func (spec *ContractInstanceSpec) Validate(ctx AppContext, name string, src *sol.Contract) bool {
@@ -110,6 +112,15 @@ func (spec *ContractInstanceSpec) Validate(ctx AppContext, name string, src *sol
 	}
 	spec.binding = binding
 	return true
+}
+
+func (spec *ContractInstanceSpec) fetchSymbolName(ctx AppContext) {
+	if spec.binding != nil && spec.binding.Client() != nil {
+		callOpts := &bind.CallOpts{
+			Context: ctx,
+		}
+		spec.binding.Call(callOpts, &spec.tokenSymbol, "symbol")
+	}
 }
 
 func (spec *ContractInstanceSpec) BoundContract() *ethfw.BoundContract {

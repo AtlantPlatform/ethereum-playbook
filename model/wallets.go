@@ -9,9 +9,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/serialx/hashring"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -36,6 +38,27 @@ func (wallets Wallets) NameForAddress(address common.Address) string {
 		}
 	}
 	return ""
+}
+
+func (wallets Wallets) GetOne(rx *regexp.Regexp, hash string) *WalletSpec {
+	ring := hashring.New(nil)
+	for name := range wallets {
+		if rx.MatchString(name) {
+			ring = ring.AddNode(name)
+		}
+	}
+	name, _ := ring.GetNode(hash)
+	return wallets[name]
+}
+
+func (wallets Wallets) GetAll(rx *regexp.Regexp) []*WalletSpec {
+	specs := make([]*WalletSpec, 0, len(wallets))
+	for name, spec := range wallets {
+		if rx.MatchString(name) {
+			specs = append(specs, spec)
+		}
+	}
+	return specs
 }
 
 func (wallets Wallets) WalletSpec(name string) (*WalletSpec, bool) {

@@ -27,7 +27,7 @@ READ:
     wallet: alice
     method: eth_getBalance
     params:
-      - @@
+      - {type: address, value: @@}
 
 WRITE:
   burn-all:
