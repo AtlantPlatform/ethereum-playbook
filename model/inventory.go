@@ -19,6 +19,18 @@ func (inventory Inventory) Validate(ctx AppContext, spec *Spec) bool {
 	return true
 }
 
+func (inventory Inventory) GetClient(groupName string) (*rpc.Client, bool) {
+	group, ok := inventory[groupName]
+	if !ok {
+		return nil, false
+	}
+	client, err := rpc.Dial(group[0])
+	if err != nil {
+		return nil, false
+	}
+	return client, true
+}
+
 type InventorySpec []string
 
 func (spec *InventorySpec) Validate(ctx AppContext, groupName string) bool {
@@ -29,10 +41,10 @@ func (spec *InventorySpec) Validate(ctx AppContext, groupName string) bool {
 	for _, node := range *spec {
 		client, err := rpc.Dial(node)
 		if err != nil {
-			validateLog.WithError(err).Warningln("failed to parse Geth node URI")
+			validateLog.WithError(err).Warningln("failed to connect a Geth node")
 			continue
 		} else if err := client.Call(nil, "net_version"); err != nil {
-			validateLog.WithError(err).Warningf("failed to connect a Geth node")
+			validateLog.WithError(err).Warningf("Geth node is limited")
 			continue
 		}
 		client.Close()

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -8,7 +9,110 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-const walletPrefix string = "@"
+type ParamSpec struct {
+	Params []interface{} `yaml:"params"`
+
+	paramValues []interface{} `yaml:"-"`
+}
+
+func (spec *ParamSpec) Validate(ctx AppContext, name string, root *Spec) bool {
+	spec.paramValues = make([]interface{}, len(spec.Params))
+	for paramID, param := range spec.Params {
+		if !spec.validateParam(ctx, name, root, NewEvaler(), paramID, param) {
+			return false
+		}
+	}
+	// for k, v := range spec.paramValues {
+	// 	log.Printf("%v: %#v %T", k, v, v)
+	// }
+	return true
+}
+
+func (spec *ParamSpec) ParamValues() []interface{} {
+	return spec.paramValues
+}
+
+var PlaceholderAddr = common.BytesToAddress([]byte("0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"))
+
+func (spec *ParamSpec) validateParam(ctx AppContext,
+	name string, root *Spec, evaler *Evaler, paramID int, param interface{}) bool {
+	validateLog := log.WithFields(log.Fields{
+		"section": "ParamSpec",
+		"command": name,
+	})
+	switch p := param.(type) {
+	case map[interface{}]interface{}:
+		typ, ok := p["type"]
+		if !ok {
+			// default to string
+			spec.paramValues[paramID] = param
+			return true
+		}
+		valueStr := nillableStr(p["value"])
+		referenceStr := nillableStr(p["reference"])
+		if len(valueStr) > 0 && len(referenceStr) > 0 {
+			validateLog.Errorln("value and reference cannot co-exist in param spec", valueStr, referenceStr)
+			return false
+		}
+		paramType := ParamType(typ.(string))
+
+		if len(referenceStr) > 0 {
+			refLog := validateLog.WithField("reference", referenceStr)
+			if !isWalletRef(referenceStr) {
+				refLog.Errorln("reference string is not a wallet field reference")
+				return false
+			}
+			ref, err := newWalletFieldReference(ctx, root, referenceStr)
+			if err != nil {
+				refLog.WithError(err).Errorln("failed to resolve reference")
+				return false
+			}
+			spec.paramValues[paramID] = ref
+			return true
+		}
+
+		// allow cross-reference to the wallet section,
+		// if param type is address, e.g. @bob
+		if paramType == ParamTypeAddress {
+			if isWalletRef(valueStr) {
+				walletName := strings.TrimPrefix(valueStr, walletPrefix)
+				if walletName == walletPrefix {
+					spec.paramValues[paramID] = PlaceholderAddr // will be checked later
+					return true
+				}
+				if wallet, existing := root.Wallets.WalletSpec(walletName); !existing {
+					validateLog.WithField("wallet", walletName).Errorln("unknown wallet reference")
+					return false
+				} else {
+					spec.paramValues[paramID] = common.HexToAddress(wallet.Address)
+					return true
+				}
+			}
+		}
+
+		v, ok := parseParam(evaler, paramType, valueStr)
+		if !ok {
+			validateLog.WithFields(log.Fields{
+				"offset": paramID,
+				"type":   string(paramType),
+				"value":  valueStr,
+			}).Errorln("param parsing error, check type")
+			return false
+		}
+		spec.paramValues[paramID] = v
+	case string:
+		spec.paramValues[paramID] = param
+	default:
+		validateLog.Println("unsupported param type: expected string or object {type, value}")
+		return false
+	}
+	return true
+}
+
+const (
+	walletPrefix string = "@"
+	refDelim     string = "."
+)
 
 func isWalletRef(str string) bool {
 	return strings.HasPrefix(str, walletPrefix)
@@ -169,4 +273,11 @@ func parseParam(evaler *Evaler, typ ParamType, value string) (vv interface{}, ok
 		}
 	}
 	return vv, ok
+}
+
+func nillableStr(str interface{}) string {
+	if str == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", str)
 }

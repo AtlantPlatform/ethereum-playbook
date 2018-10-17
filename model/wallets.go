@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -30,10 +32,9 @@ func (wallets Wallets) Validate(ctx AppContext, spec *Spec) bool {
 	return true
 }
 
-func (wallets Wallets) NameForAddress(address common.Address) string {
-	ref := strings.ToLower(address.Hex())
+func (wallets Wallets) NameOf(address string) string {
 	for name, wallet := range wallets {
-		if wallet.Address == ref {
+		if wallet.Address == address {
 			return name
 		}
 	}
@@ -41,37 +42,45 @@ func (wallets Wallets) NameForAddress(address common.Address) string {
 }
 
 func (wallets Wallets) GetOne(rx *regexp.Regexp, hash string) *WalletSpec {
-	ring := hashring.New(nil)
+	names := make([]string, 0, len(wallets))
 	for name := range wallets {
 		if rx.MatchString(name) {
-			ring = ring.AddNode(name)
+			names = append(names, name)
 		}
 	}
+	sort.Sort(sort.StringSlice(names))
+	ring := hashring.New(names)
 	name, _ := ring.GetNode(hash)
 	return wallets[name]
 }
 
 func (wallets Wallets) GetAll(rx *regexp.Regexp) []*WalletSpec {
-	specs := make([]*WalletSpec, 0, len(wallets))
-	for name, spec := range wallets {
+	names := make([]string, 0, len(wallets))
+	for name := range wallets {
 		if rx.MatchString(name) {
-			specs = append(specs, spec)
+			names = append(names, name)
 		}
+	}
+	sort.Sort(sort.StringSlice(names))
+	specs := make([]*WalletSpec, 0, len(names))
+	for _, name := range names {
+		specs = append(specs, wallets[name])
 	}
 	return specs
 }
 
 func (wallets Wallets) WalletSpec(name string) (*WalletSpec, bool) {
-	w, ok := wallets[name]
-	return w, ok
+	spec, ok := wallets[name]
+	return spec, ok
 }
 
 type WalletSpec struct {
-	Address  string `yaml:"address"`
-	PrivKey  string `yaml:"privkey"`
-	Password string `yaml:"password"`
-	KeyStore string `yaml:"keystore"`
-	KeyFile  string `yaml:"keyfile"`
+	Address  string   `yaml:"address"`
+	PrivKey  string   `yaml:"privkey"`
+	Password string   `yaml:"password"`
+	KeyStore string   `yaml:"keystore"`
+	KeyFile  string   `yaml:"keyfile"`
+	Balance  *big.Int `yaml:"-"`
 
 	privKey *ecdsa.PrivateKey `yaml:"-"`
 }
@@ -193,14 +202,14 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 		return true
 	}
 	if len(spec.KeyStore) == 0 {
-		validateLog.Errorln("no privkey, keyfile or keystore prefix specified")
-		return false
+		validateLog.Warningln("no privkey, keyfile or keystore prefix specified")
+		return true
 	} else if len(spec.Address) == 0 {
-		validateLog.Errorln("no account is specified to search the keyfile in keystore prefix")
-		return false
+		validateLog.Warningln("no account is specified to search the keyfile in keystore prefix")
+		return true
 	} else if len(spec.Password) == 0 {
-		validateLog.Errorln("no password is provided for the account keyfile")
-		return false
+		validateLog.Warningln("no password is provided for the account keyfile")
+		return true
 	}
 	var accountKeyfile *keyFile
 	if err := forEachKeyFile(spec.KeyStore, func(keyfile *keyFile) error {
@@ -259,6 +268,7 @@ const (
 	WalletSpecPasswordField FieldName = "password"
 	WalletSpecKeyStoreField FieldName = "keystore"
 	WalletSpecKeyFileField  FieldName = "keyfile"
+	WalletSpecBalanceField  FieldName = "balance"
 )
 
 func (spec *WalletSpec) HasField(name FieldName) bool {
@@ -266,14 +276,15 @@ func (spec *WalletSpec) HasField(name FieldName) bool {
 	case WalletSpecAddressField,
 		WalletSpecPasswordField,
 		WalletSpecKeyStoreField,
-		WalletSpecKeyFileField:
+		WalletSpecKeyFileField,
+		WalletSpecBalanceField:
 		return true
 	default:
 		return false
 	}
 }
 
-func (spec *WalletSpec) FieldValue(name FieldName) string {
+func (spec *WalletSpec) FieldValue(name FieldName) interface{} {
 	switch name {
 	case WalletSpecAddressField:
 		return spec.Address
@@ -283,9 +294,40 @@ func (spec *WalletSpec) FieldValue(name FieldName) string {
 		return spec.KeyStore
 	case WalletSpecKeyFileField:
 		return spec.KeyFile
+	case WalletSpecBalanceField:
+		return spec.Balance
 	default:
 		panic("value of non-existing field")
 	}
+}
+
+func newWalletFieldReference(ctx AppContext, root *Spec, value string) (*WalletFieldReference, error) {
+	refStr := strings.TrimPrefix(value, walletPrefix)
+	refParts := strings.Split(refStr, refDelim)
+	if len(refParts) != 2 {
+		err := errors.New("reference must have two parts: walletName.fieldName")
+		return nil, err
+	}
+	walletName := refParts[0]
+	fieldName := FieldName(refParts[1])
+	wallet, ok := root.Wallets.WalletSpec(walletName)
+	if !ok {
+		err := errors.New("value reference targets unknown wallet")
+		return nil, err
+	} else if !wallet.HasField(fieldName) {
+		err := fmt.Errorf("value reference targets unknown wallet field: %s", fieldName)
+		return nil, err
+	}
+	ref := &WalletFieldReference{
+		WalletName: walletName,
+		FieldName:  fieldName,
+	}
+	return ref, nil
+}
+
+type WalletFieldReference struct {
+	WalletName string
+	FieldName  FieldName
 }
 
 func listAccounts(paths ...string) (accounts []common.Address) {

@@ -36,8 +36,8 @@ func (contracts Contracts) Validate(ctx AppContext, spec *Spec) bool {
 }
 
 func (contracts Contracts) ContractSpec(name string) (*ContractSpec, bool) {
-	c, ok := contracts[name]
-	return c, ok
+	spec, ok := contracts[name]
+	return spec, ok
 }
 
 type ContractSpec struct {
@@ -114,13 +114,14 @@ func (spec *ContractInstanceSpec) Validate(ctx AppContext, name string, src *sol
 	return true
 }
 
-func (spec *ContractInstanceSpec) fetchSymbolName(ctx AppContext) {
+func (spec *ContractInstanceSpec) FetchSymbolName(ctx AppContext) string {
 	if spec.binding != nil && spec.binding.Client() != nil {
 		callOpts := &bind.CallOpts{
 			Context: ctx,
 		}
 		spec.binding.Call(callOpts, &spec.tokenSymbol, "symbol")
 	}
+	return spec.tokenSymbol
 }
 
 func (spec *ContractInstanceSpec) BoundContract() *ethfw.BoundContract {

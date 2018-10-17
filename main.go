@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	cli "github.com/jawher/mow.cli"
 
+	"github.com/AtlantPlatform/ethereum-playbook/executor"
 	"github.com/AtlantPlatform/ethereum-playbook/model"
 	"github.com/AtlantPlatform/ethereum-playbook/yaml"
 )
@@ -62,14 +64,72 @@ func main() {
 		if ok := spec.Validate(ctx); !ok {
 			os.Exit(-1)
 		}
-		jsonPrint(spec)
+		log.Infoln("config validated")
+		executor, err := executor.New(ctx, spec)
+		if err != nil {
+			mainLog.WithError(err).Fatalln("failed to init executor")
+		}
+		if len(*appCommand) > 0 {
+			results, found := executor.RunCommand(ctx, *appCommand)
+			if !found {
+				log.WithField("command", *appCommand).Fatalln("command not found")
+			}
+			exportResults(spec, results)
+		}
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatalln(err)
 	}
 }
 
+func exportResults(spec *model.Spec, results []*executor.CommandResult) {
+	if len(results) == 0 {
+		jsonPrint(&ErrorObject{Error: "no results"})
+		return
+	} else if len(results) == 1 {
+		if len(results[0].Wallet) == 0 {
+			if results[0].Error != nil {
+				jsonPrint(&ErrorObject{Error: results[0].Error.Error()})
+				return
+			}
+			jsonPrint(prettify(results[0].Result))
+			return
+		}
+	}
+	for _, result := range results {
+		walletName := spec.Wallets.NameOf(result.Wallet)
+		if result.Error != nil {
+			v, err := json.Marshal(&ErrorObject{Error: result.Error.Error()})
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("%s (@%s): %s\n", result.Wallet, walletName, v)
+			continue
+		}
+		v, err := json.Marshal(prettify(result.Result))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%s (@%s): %s\n", result.Wallet, walletName, v)
+	}
+}
+
 func jsonPrint(v interface{}) {
-	vv, _ := json.MarshalIndent(v, "", "\t")
+	vv, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(vv))
+}
+
+type ErrorObject struct {
+	Error string `json: "error"`
+}
+
+func yamlPrint(v interface{}) {
+	vv, err := yaml.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
 	log.Println(string(vv))
 }

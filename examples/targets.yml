@@ -1,0 +1,57 @@
+---
+INVENTORY:
+  genesis:
+    - var/chain/geth.ipc
+
+WALLETS:
+  alice:
+    # address: not known
+    address: 0x3f635f774aee25aa9f757ee07f55683fc09064f1
+    keystore: "var/chain/keystore"
+    password: "1234"
+
+## TBD(xlab) — not implemented
+# TARGETS:
+#   run:
+#     - new-account
+#     - balance
+#     - miner-rebase
+#     - miner-start
+#     - wait: 20s
+#     - miner-stop
+#     - balance
+#     - burn-all
+#     - await: burn-all
+#     - txinfo: burn-all
+#     - balance
+## TBD!!!
+
+CALL:
+  block:
+    method: eth_blockNumber
+  new-account:
+    method: personal_newAccount
+    params:
+      - {type: string, reference: @alice.password}
+    output:
+      - @alice.address
+  balance:
+    wallet: alice
+    method: eth_getBalance
+    params:
+      - {type: address, value: @@}
+      - latest
+  miner-rebase:
+    method: miner_setEtherbase
+    params:
+      - {type: address, value: @alice}
+  miner-start:
+    method: miner_start
+  miner-stop:
+    method: miner_stop
+
+WRITE:
+  burn-all:
+    wallet: alice
+    to: 0x0
+    value: @alice.balance - (40 * 1e9 * 21000)

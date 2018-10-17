@@ -1,12 +1,10 @@
 package model
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type ReadCmds map[string]*ReadCmdSpec
@@ -20,16 +18,21 @@ func (cmds ReadCmds) Validate(ctx AppContext, spec *Spec) bool {
 	return true
 }
 
+func (cmds ReadCmds) ReadCmdSpec(name string) (*ReadCmdSpec, bool) {
+	spec, ok := cmds[name]
+	return spec, ok
+}
+
 type ReadCmdSpec struct {
+	ParamSpec `yaml:",inline"`
+
 	Wallet string `yaml:"wallet"`
 	Method string `yaml:"method"`
 
-	Params   []interface{}         `yaml:"params"`
 	Instance *ContractInstanceSpec `yaml:"instance"`
 
-	walletRx    *regexp.Regexp `yaml:"-"`
-	matching    []*WalletSpec  `yaml:"-"`
-	paramValues []interface{}  `yaml:"-"`
+	walletRx *regexp.Regexp `yaml:"-"`
+	matching []*WalletSpec  `yaml:"-"`
 }
 
 func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool {
@@ -39,10 +42,11 @@ func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 	})
 	var hasWalletName bool
 	if len(spec.Wallet) > 0 {
+		if isWalletRef(spec.Wallet) {
+			validateLog.Errorln("wallet reference is not allowed in 'wallet' field, must be name")
+			return false
+		}
 		hasWalletName = true
-	} else {
-		// match all by default
-		spec.Wallet = "."
 	}
 	if rx, err := regexp.Compile(spec.Wallet); err != nil {
 		validateLog.WithError(err).Errorln("failed to compile wallet regexp")
@@ -57,75 +61,48 @@ func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 			return false
 		}
 	}
+	if spec.Instance == nil {
+		validateLog.Errorln("no target contract instance specified")
+		return false
+	} else if len(spec.Instance.Name) == 0 {
+		validateLog.Errorln("the target contract spec name is not specified")
+		return false
+	}
+	contract, ok := root.Contracts.ContractSpec(spec.Instance.Name)
+	if !ok || contract == nil {
+		validateLog.Errorln("the target contract spec not found (name mismatch)")
+		return false
+	} else if len(contract.Instances) == 0 {
+		validateLog.Errorln("the target contract spec has no instances")
+		return false
+	}
+	address := strings.ToLower(spec.Instance.Address)
+	if len(address) == 0 {
+		spec.Instance = contract.Instances[0]
+	} else {
+		var found bool
+		for _, instance := range contract.Instances {
+			if instance.Address == address {
+				found = true
+				spec.Instance = instance
+				break
+			}
+		}
+		if !found {
+			validateLog.Errorln("referenced contract instance is not found (address mismatch)")
+			return false
+		}
+	}
 	if len(spec.Method) == 0 {
 		validateLog.Errorln("no method name is specified")
 		return false
 	}
-	spec.paramValues = make([]interface{}, len(spec.Params))
-	for paramID, param := range spec.Params {
-		if !spec.validateParam(ctx, name, root, NewEvaler(), paramID, param) {
-			return false
-		}
-	}
-	for k, v := range spec.paramValues {
-		log.Printf("%v: %#v %T", k, v, v)
+	if !spec.ParamSpec.Validate(ctx, name, root) {
+		return false
 	}
 	return true
 }
 
-var placeholderAddr = common.BytesToAddress([]byte("0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"))
-
-func (spec *ReadCmdSpec) validateParam(ctx AppContext,
-	name string, root *Spec, evaler *Evaler, paramID int, param interface{}) bool {
-	validateLog := log.WithFields(log.Fields{
-		"section": "ReadCommands",
-		"command": name,
-	})
-	switch p := param.(type) {
-	case map[interface{}]interface{}:
-		typ, ok := p["type"]
-		if !ok {
-			// default to string
-			spec.paramValues[paramID] = param
-			return true
-		}
-		valueStr := fmt.Sprintf("%v", p["value"])
-		paramType := ParamType(typ.(string))
-
-		// allow cross-reference to the wallet section,
-		// if param type is address, e.g. @bob
-		if paramType == ParamTypeAddress {
-			if isWalletRef(valueStr) {
-				walletName := strings.TrimPrefix(valueStr, walletPrefix)
-				if walletName == walletPrefix {
-					spec.paramValues[paramID] = placeholderAddr // will be checked later
-					return true
-				}
-				if wallet, existing := root.Wallets.WalletSpec(walletName); !existing {
-					validateLog.WithField("wallet", walletName).Errorln("unknown wallet reference")
-					return false
-				} else {
-					spec.paramValues[paramID] = common.HexToAddress(wallet.Address)
-					return true
-				}
-			}
-		}
-
-		v, ok := parseParam(evaler, paramType, valueStr)
-		if !ok {
-			validateLog.WithFields(log.Fields{
-				"offset": paramID,
-				"type":   string(paramType),
-				"value":  valueStr,
-			}).Errorln("param parsing error, check type")
-			return false
-		}
-		spec.paramValues[paramID] = v
-	case string:
-		spec.paramValues[paramID] = param
-	default:
-		validateLog.Println("unsupported param type: expected string or object {type, value}")
-		return false
-	}
-	return true
+func (spec *ReadCmdSpec) MatchingWallets() []*WalletSpec {
+	return spec.matching
 }

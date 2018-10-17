@@ -33,11 +33,15 @@ CONTRACTS:
         contract: property-token
         address: 0x0
 
-READ:
+CALL:
   eth-balances:
+    wallet: .
     method: eth_getBalance
     params:
       - {type: address, value: @@}
+      - latest
+
+READ:
   get-owner:
     instance: *PTO123
     method: owner
@@ -66,7 +70,8 @@ WRITE:
 
   deploy-property-token:
     wallet: bob
-    deploy: property-token
+    instance:
+      contract: property-token
     params:
       - Atlant Property Token 123
       - PTO123
@@ -77,15 +82,15 @@ WRITE:
     instance: *PTO123
     method: mint
     params:
-      - @bob
+      - {type: address, value: @bob}
 
   transfer-50-tokens:
     wallet: bob
     instance: *PTO123
     method: transfer
     params:
-      - @bob
-      - @alice
+      - {type: address, value: @bob}
+      - {type: address, value: @alice}
       - {type: uint, value: 50 * 1e18}
 
   # same as transfer, but unified with ETH send

@@ -8,9 +8,9 @@ type Spec struct {
 	Contracts Contracts `yaml:"CONTRACTS"`
 	Targets   Targets   `yaml:"TARGETS"`
 
-	ReadCmds     ReadCmds     `yaml:"READ"`
-	WriteCmds    WriteCmds    `yaml:"WRITE"`
-	PersonalCmds PersonalCmds `yaml:"PERSONAL"`
+	ReadCmds  ReadCmds  `yaml:"READ"`
+	WriteCmds WriteCmds `yaml:"WRITE"`
+	CallCmds  CallCmds  `yaml:"CALL"`
 }
 
 func (spec *Spec) Validate(ctx AppContext) bool {
@@ -27,8 +27,8 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			return false
 		}
 	}
-	if spec.ReadCmds == nil && spec.WriteCmds == nil && spec.PersonalCmds == nil {
-		validateLog.Errorln("spec must contain at least one of READ, WRITE or PERSONAL sections")
+	if spec.ReadCmds == nil && spec.WriteCmds == nil && spec.CallCmds == nil {
+		validateLog.Errorln("spec must contain at least one of READ, WRITE or CALL sections")
 		return false
 	}
 	if spec.Wallets != nil {
@@ -36,8 +36,8 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			validateLog.Errorln("wallets spec validation failed")
 			return false
 		}
-	} else if spec.WriteCmds != nil || spec.PersonalCmds != nil {
-		validateLog.Errorln("spec must contain the WALLET section, if WRITE or PERSONAL sections are provided")
+	} else if spec.WriteCmds != nil || spec.CallCmds != nil {
+		validateLog.Errorln("spec must contain the WALLET section, if WRITE or CALL sections are provided")
 		return false
 	}
 	if spec.Contracts != nil {
@@ -46,9 +46,9 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			return false
 		}
 	}
-	if spec.PersonalCmds != nil {
-		if !spec.PersonalCmds.Validate(ctx, spec) {
-			validateLog.Errorln("personal cmds spec validation failed")
+	if spec.CallCmds != nil {
+		if !spec.CallCmds.Validate(ctx, spec) {
+			validateLog.Errorln("call cmds spec validation failed")
 			return false
 		}
 	}
