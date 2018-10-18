@@ -253,6 +253,10 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 	return true
 }
 
+func (spec *WalletSpec) PrivKeyECDSA() *ecdsa.PrivateKey {
+	return spec.privKey
+}
+
 func isFile(path string) bool {
 	info, err := os.Stat(path)
 	if err != nil {

@@ -4,13 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
-	"strings"
 
 	"github.com/AtlantPlatform/ethfw"
 	log "github.com/Sirupsen/logrus"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
@@ -61,126 +58,6 @@ type CommandResult struct {
 	Result interface{}
 	Error  error
 }
-
-func (e *Executor) runCallCmd(ctx model.AppContext, cmdSpec *model.CallCmdSpec) []*CommandResult {
-	matchingWallets := cmdSpec.MatchingWallets()
-	results := make([]*CommandResult, len(matchingWallets))
-	if len(matchingWallets) > 0 {
-		for offset, walletSpec := range matchingWallets {
-			walletAddress := common.HexToAddress(walletSpec.Address)
-			params := replaceWalletPlaceholders(cmdSpec.ParamValues(), walletAddress)
-			params = replaceReferences(ctx, params, e.root)
-			result := &CommandResult{
-				Wallet: walletSpec.Address,
-			}
-			result.Error = e.ethRPC.CallContext(ctx, &result.Result, cmdSpec.Method, params...)
-			results[offset] = result
-		}
-		return results
-	}
-	result := &CommandResult{}
-	params := replaceReferences(ctx, cmdSpec.ParamValues(), e.root)
-	result.Error = e.ethRPC.CallContext(ctx, &result.Result, cmdSpec.Method, params...)
-	results = append(results, result)
-	return results
-}
-
-func (e *Executor) runReadCmd(ctx model.AppContext, cmdSpec *model.ReadCmdSpec) []*CommandResult {
-	if !cmdSpec.Instance.IsDeployed() {
-		return []*CommandResult{{
-			Error: errors.New("contract instance is not deployed yet"),
-		}}
-	}
-	binding := cmdSpec.Instance.BoundContract()
-	binding.SetClient(e.ethCli)
-	matchingWallets := cmdSpec.MatchingWallets()
-	results := make([]*CommandResult, len(matchingWallets))
-	if len(matchingWallets) > 0 {
-		for offset, walletSpec := range matchingWallets {
-			walletAddress := common.HexToAddress(walletSpec.Address)
-			params := replaceWalletPlaceholders(cmdSpec.ParamValues(), walletAddress)
-			params = replaceReferences(ctx, params, e.root)
-			result := &CommandResult{
-				Wallet: walletSpec.Address,
-			}
-			opts := &bind.CallOpts{
-				From:    walletAddress,
-				Context: ctx,
-			}
-			result.Error = binding.Call(opts, &result.Result, cmdSpec.Method, params...)
-			results[offset] = result
-		}
-		return results
-	}
-	opts := &bind.CallOpts{
-		Context: ctx,
-	}
-	result := &CommandResult{}
-	params := replaceReferences(ctx, cmdSpec.ParamValues(), e.root)
-	result.Error = binding.Call(opts, &result.Result, cmdSpec.Method, params...)
-	results = append(results, result)
-	return results
-}
-
-func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec) []*CommandResult {
-	var binding *ethfw.BoundContract
-	var denominations []string
-	if cmdSpec.Instance != nil {
-		// TODO: must do this for all contract instances
-		binding = cmdSpec.Instance.BoundContract()
-		binding.SetClient(e.ethCli)
-		if cmdSpec.Instance.IsDeployed() {
-			if name := cmdSpec.Instance.FetchSymbolName(ctx); len(name) > 0 {
-				denominations = append(denominations, strings.ToLower(name))
-			}
-		}
-	}
-	result := &CommandResult{}
-	wallet := cmdSpec.MatchingWallet()
-	account := common.HexToAddress(wallet.Address)
-	balance, err := e.ethCli.BalanceAt(ctx, account, nil)
-	if err != nil {
-		result.Error = err
-		return []*CommandResult{result}
-	}
-	wallet.Balance = balance
-	nonce, err := e.ethCli.PendingNonceAt(ctx, account)
-	if err != nil {
-		result.Error = err
-		return []*CommandResult{result}
-	}
-	if len(cmdSpec.To) > 0 {
-		to := common.HexToAddress(cmdSpec.To)
-		value, err := cmdSpec.Value.Parse(ctx, e.root, denominations)
-		if err != nil {
-			result.Error = err
-			return []*CommandResult{result}
-		}
-		// log.Println("sending", value.Value.String(), gasLimit, gasPrice.ToInt().String())
-		tx := types.NewTransaction(nonce, to, value.Value, gasLimit, gasPrice.ToInt(), nil)
-		pk, ok := e.keycache.PrivateKey(account, wallet.Password)
-		if !ok {
-			result.Error = errors.New("failed to get account private key")
-			return []*CommandResult{result}
-		}
-		signer := types.NewEIP155Signer(chainID)
-		signedTx, err := types.SignTx(tx, signer, pk)
-		if err != nil {
-			result.Error = err
-			return []*CommandResult{result}
-		}
-		result.Error = e.ethCli.SendTransaction(ctx, signedTx)
-		result.Result = "tx:" + strings.ToLower(signedTx.Hash().Hex())
-		return []*CommandResult{result}
-	}
-	return nil
-}
-
-const gasLimit = 1000000
-
-var chainID = big.NewInt(1)
-
-var gasPrice = ethfw.Gwei(40)
 
 func replaceWalletPlaceholders(params []interface{}, walletAddress common.Address) []interface{} {
 	newParams := append([]interface{}{}, params...)

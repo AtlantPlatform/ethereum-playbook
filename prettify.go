@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -27,6 +28,8 @@ func prettifyValue(v interface{}) interface{} {
 			return vvv.String()
 		}
 		return vv
+	case *big.Int:
+		return vv.String()
 	case *hexutil.Big:
 		return vv.ToInt().String()
 	case common.Address:

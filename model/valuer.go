@@ -45,17 +45,17 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 	valueStr = strings.ToLower(valueStr)
 	var valueDenomintator string
 	for _, den := range denomintators {
-		if strings.HasSuffix(valueStr, den) {
-			valueStr = strings.TrimSuffix(valueStr, den)
+		if strings.HasSuffix(valueStr, " "+den) {
+			valueStr = strings.TrimSuffix(valueStr, " "+den)
 			if !isMathExp(valueStr) {
-				err := errors.New("not a math expression in value string")
+				err := fmt.Errorf("not a math expression in value string: %s", valueStr)
 				return nil, err
 			}
 			valueDenomintator = den
 		}
 	}
 	if !isMathExp(valueStr) {
-		err := errors.New("not a math expression in value string")
+		err := fmt.Errorf("not a math expression in value string: %s", valueStr)
 		return nil, err
 	}
 	evaler := NewEvaler()

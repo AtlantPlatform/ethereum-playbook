@@ -1,12 +1,14 @@
 {
   "difficulty" : "0x20000",
   "extraData"  : "",
-  "gasLimit"   : "0x8000000",
+  "gasLimit"   : "0xA0000000",
   "alloc": {},
   "config": {
         "chainId": 1,
         "homesteadBlock": 0,
+        "eip150Block": 0,
         "eip155Block": 0,
-        "eip158Block": 0
+        "eip158Block": 0,
+        "byzantiumBlock": 0
     }
 }

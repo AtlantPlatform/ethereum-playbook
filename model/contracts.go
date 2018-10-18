@@ -2,6 +2,7 @@ package model
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
@@ -38,6 +39,18 @@ func (contracts Contracts) Validate(ctx AppContext, spec *Spec) bool {
 func (contracts Contracts) ContractSpec(name string) (*ContractSpec, bool) {
 	spec, ok := contracts[name]
 	return spec, ok
+}
+
+func (contracts Contracts) FindByTokenSymbol(symbol string) (*ContractInstanceSpec, bool) {
+	symbol = strings.ToUpper(symbol)
+	for _, contract := range contracts {
+		for _, instance := range contract.Instances {
+			if instance.tokenSymbol == symbol {
+				return instance, true
+			}
+		}
+	}
+	return nil, false
 }
 
 type ContractSpec struct {
@@ -114,12 +127,19 @@ func (spec *ContractInstanceSpec) Validate(ctx AppContext, name string, src *sol
 	return true
 }
 
-func (spec *ContractInstanceSpec) FetchSymbolName(ctx AppContext) string {
+func (spec *ContractInstanceSpec) TokenSymbol() string {
+	return spec.tokenSymbol
+}
+
+func (spec *ContractInstanceSpec) FetchTokenSymbol(ctx AppContext) string {
 	if spec.binding != nil && spec.binding.Client() != nil {
 		callOpts := &bind.CallOpts{
 			Context: ctx,
 		}
-		spec.binding.Call(callOpts, &spec.tokenSymbol, "symbol")
+		var symbol string
+		if err := spec.binding.Call(callOpts, &symbol, "symbol"); err == nil {
+			spec.tokenSymbol = strings.ToUpper(symbol)
+		}
 	}
 	return spec.tokenSymbol
 }

@@ -13,10 +13,10 @@ WALLETS:
     keyfile: "var/chain/keystore/bob.json"
     password: "1234"
 
-  foo3:
-    address: 0x3b47427740b5dedf1bfae36862a78d7134609607
-    keystore: "var/chain/keystore"
-    password: "1234"
+  # foo3:
+  #   address: 0x3b47427740b5dedf1bfae36862a78d7134609607
+  #   keystore: "var/chain/keystore"
+  #   password: "1234"
 
 CONTRACTS:
   property-token:
@@ -25,7 +25,7 @@ CONTRACTS:
     instances:
       - &PTO123
         contract: property-token
-        address: 0x0
+        address: 0x37b691a77804b233758020814d05daf492f0d265
       - &PTO124
         contract: property-token
         address: 0x0
@@ -52,6 +52,7 @@ READ:
     method: owner
 
   token-balances:
+    wallet: .
     instance: *PTO123
     method: balanceOf
     params:
@@ -62,6 +63,11 @@ WRITE:
     wallet: alice
     to: bob
     value: 100
+
+  send-wei:
+    wallet: alice
+    to: bob
+    value: $1
 
   send-100-gwei:
     wallet: alice
@@ -88,13 +94,13 @@ WRITE:
     method: mint
     params:
       - {type: address, value: @bob}
+      - {type: uint, value: 100 * 1e18}
 
   transfer-50-tokens:
     wallet: bob
     instance: *PTO123
     method: transfer
     params:
-      - {type: address, value: @bob}
       - {type: address, value: @alice}
       - {type: uint, value: 50 * 1e18}
 

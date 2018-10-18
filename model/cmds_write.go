@@ -114,10 +114,6 @@ func (spec *WriteCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool
 				return false
 			}
 		}
-		if spec.Instance.IsDeployed() && len(spec.Method) == 0 {
-			validateLog.Errorln("the contract is deployed, but no recipient method specified")
-			return false
-		}
 		// TODO: check ABI
 	} else if spec.Instance != nil {
 		validateLog.Errorln("contract instance must not be specified while using recipient 'to' address")

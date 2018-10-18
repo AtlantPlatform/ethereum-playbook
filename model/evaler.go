@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"go/token"
 	"math/big"
@@ -23,6 +24,9 @@ func NewEvaler() *Evaler {
 func (c *Evaler) Run(expr string, expected ...ExprType) (interface{}, error) {
 	code, err := c.world.Compile(c.fset, expr)
 	if err != nil {
+		return nil, err
+	} else if code.Type() == nil {
+		err := errors.New("empty value")
 		return nil, err
 	}
 	var exprType ExprType
