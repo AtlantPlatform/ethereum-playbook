@@ -1,10 +1,7 @@
 ---
 INVENTORY:
   testnet:
-    - http://node-dev1.atlant.io:8545
-    - http://node-dev2.atlant.io:8545
-    - http://node-dev3.atlant.io:8545
-
+    - http://localhost:8545
   genesis:
     - var/chain/geth.ipc
 
@@ -40,6 +37,14 @@ CALL:
     params:
       - {type: address, value: @@}
       - latest
+  txinfo:
+    method: eth_getTransactionByHash
+    params:
+      - {type: string, reference: $1}
+  txreceipt:
+    method: eth_getTransactionReceipt
+    params:
+      - {type: string, reference: $1}
 
 READ:
   get-owner:

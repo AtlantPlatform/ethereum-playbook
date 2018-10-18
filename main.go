@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
@@ -22,64 +24,168 @@ import (
 var app = cli.App("ethereum-playbook", "Ethereum contracts deployment and management tool.")
 
 var (
-	specPath   = app.StringOpt("f file", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
-	solcPath   = app.StringOpt("s solc", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
-	nodeGroup  = app.StringOpt("g group", "genesis", "Inventory group name, corresponding to Geth nodes.")
-	appCommand = app.StringArg("COMMAND", "", "Specify a command or target to run. If empty, will only verify spec.")
+	specPath  = flag.String("f", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
+	solcPath  = flag.String("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
+	nodeGroup = flag.String("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
+	printHelp = flag.Bool("h", false, "Print help.")
 )
 
+func init() {
+	app.StringOpt("f", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
+	app.StringOpt("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
+	app.StringOpt("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
+	app.BoolOpt("h", false, "Print help.")
+}
+
 func main() {
-	app.Spec = "[-f] [-s] [-g] [COMMAND]"
+	flag.Parse()
+	spec, ok := loadSpec()
+	if !ok {
+		if *printHelp {
+			flag.Usage()
+			os.Exit(0)
+		}
+		os.Exit(-1)
+	}
+	registerCommands(app, spec)
+	app.Before = func() {
+		if *printHelp {
+			app.PrintLongHelp()
+			os.Exit(0)
+		}
+	}
 	app.Action = func() {
-		var spec *model.Spec
-		mainLog := log.WithFields(log.Fields{
-			"filename": *specPath,
-		})
-		specData, err := ioutil.ReadFile(*specPath)
-		if err != nil {
-			mainLog.WithError(err).Fatalln("failed to load spec file")
-		}
-		if err := yaml.Unmarshal(specData, &spec); err != nil {
-			mainLog.WithError(err).Fatalln("failed to parse YAML in the spec file")
-		}
-		var solcCompiler sol.Compiler
-		if spec.Contracts.UseSolc() {
-			solcAbsPath, err := exec.LookPath(*solcPath)
-			if err != nil {
-				solcAbsPath = *solcPath
-			}
-			compiler, err := sol.NewSolCompiler(solcAbsPath)
-			if err != nil {
-				mainLog.WithError(err).Fatalln("spec uses .sol contracts, but no solc compiler found")
-			}
-			solcCompiler = compiler
-		}
-		absSpecPath, err := filepath.Abs(*specPath)
-		if err != nil {
-			mainLog.WithError(err).Fatalln("failed to get absolute path of the spec file")
-		}
-		specDir := filepath.Dir(absSpecPath)
-		ctx := model.NewAppContext(context.Background(), *appCommand, *nodeGroup,
-			specDir, solcCompiler, ethfw.NewKeyCache())
-		if ok := spec.Validate(ctx); !ok {
-			os.Exit(-1)
-		}
-		log.Infoln("config validated")
-		executor, err := executor.New(ctx, spec)
-		if err != nil {
-			mainLog.WithError(err).Fatalln("failed to init executor")
-		}
-		if len(*appCommand) > 0 {
-			results, found := executor.RunCommand(ctx, *appCommand)
-			if !found {
-				log.WithField("command", *appCommand).Fatalln("command not found")
-			}
-			exportResults(spec, results)
-		}
+		validateSpec(spec, "", nil)
+		log.Infoln("spec validated")
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func registerCommands(app *cli.Cli, spec *model.Spec) {
+	callCmdNames := make([]string, 0, len(spec.CallCmds))
+	for name := range spec.CallCmds {
+		callCmdNames = append(callCmdNames, name)
+	}
+	sort.Sort(sort.StringSlice(callCmdNames))
+	for _, name := range callCmdNames {
+		cmd, _ := spec.CallCmds.CallCmdSpec(name)
+		desc := cmd.Description
+		args := cmd.ArgCount()
+		if len(desc) == 0 {
+			desc = fmt.Sprintf("Generic CALL command, accepts %d args", args)
+		}
+		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+	}
+
+	readCmdNames := make([]string, 0, len(spec.ReadCmds))
+	for name := range spec.ReadCmds {
+		readCmdNames = append(readCmdNames, name)
+	}
+	sort.Sort(sort.StringSlice(readCmdNames))
+	for _, name := range readCmdNames {
+		cmd, _ := spec.ReadCmds.ReadCmdSpec(name)
+		desc := cmd.Description
+		args := cmd.ArgCount()
+		if len(desc) == 0 {
+			desc = fmt.Sprintf("Generic READ command, accepts %d args", args)
+		}
+		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+	}
+
+	writeCmdNames := make([]string, 0, len(spec.WriteCmds))
+	for name := range spec.WriteCmds {
+		writeCmdNames = append(writeCmdNames, name)
+	}
+	sort.Sort(sort.StringSlice(writeCmdNames))
+	for _, name := range writeCmdNames {
+		cmd, _ := spec.WriteCmds.WriteCmdSpec(name)
+		desc := cmd.Description
+		args := cmd.ArgCount()
+		if len(desc) == 0 {
+			desc = fmt.Sprintf("Generic WRITE command, accepts %d args", args)
+		}
+		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+	}
+}
+
+func newCommand(spec *model.Spec, name string, argCount int) cli.CmdInitializer {
+	return func(cmd *cli.Cmd) {
+		args := make([]*string, argCount)
+		for i := 0; i < argCount; i++ {
+			args[i] = cmd.StringArg(fmt.Sprintf("ARG%d", i+1), "", fmt.Sprintf("Command argument $%d", i+1))
+		}
+		cmd.Action = func() {
+			appArgs := []string{name}
+			for _, arg := range args {
+				appArgs = append(appArgs, *arg)
+			}
+			ctx := validateSpec(spec, name, appArgs)
+			cmdLog := log.WithFields(log.Fields{
+				"command": name,
+			})
+			executor, err := executor.New(ctx, spec)
+			if err != nil {
+				cmdLog.WithError(err).Fatalln("failed to init executor")
+			}
+			results, found := executor.RunCommand(ctx, name)
+			if !found {
+				cmdLog.Fatalln("command not found")
+			}
+			exportResults(spec, results)
+		}
+	}
+}
+
+func loadSpec() (*model.Spec, bool) {
+	var spec *model.Spec
+	specLog := log.WithFields(log.Fields{
+		"filename": *specPath,
+	})
+	specData, err := ioutil.ReadFile(*specPath)
+	if err != nil {
+		specLog.WithError(err).Errorln("failed to load spec file")
+		return nil, false
+	}
+	if err := yaml.Unmarshal(specData, &spec); err != nil {
+		specLog.WithError(err).Errorln("failed to parse YAML in the spec file")
+		return nil, false
+	}
+	absSpecPath, err := filepath.Abs(*specPath)
+	if err != nil {
+		specLog.WithError(err).Errorln("failed to get absolute path of the spec file")
+		return nil, false
+	}
+	if spec.Config == nil {
+		spec.Config = model.DefaultConfigSpec
+	}
+	spec.Config.SpecDir = filepath.Dir(absSpecPath)
+	return spec, true
+}
+
+func validateSpec(spec *model.Spec, appCommand string, appArgs []string) model.AppContext {
+	specLog := log.WithFields(log.Fields{
+		"filename": *specPath,
+	})
+	var solcCompiler sol.Compiler
+	if spec.Contracts.UseSolc() {
+		solcAbsPath, err := exec.LookPath(*solcPath)
+		if err != nil {
+			solcAbsPath = *solcPath
+		}
+		compiler, err := sol.NewSolCompiler(solcAbsPath)
+		if err != nil {
+			specLog.WithError(err).Fatalln("spec uses .sol contracts, but no solc compiler found")
+		}
+		solcCompiler = compiler
+	}
+	ctx := model.NewAppContext(context.Background(), appCommand, appArgs, *nodeGroup,
+		spec.Config.SpecDir, solcCompiler, ethfw.NewKeyCache())
+	if ok := spec.Validate(ctx); !ok {
+		os.Exit(-1)
+	}
+	return ctx
 }
 
 func exportResults(spec *model.Spec, results []*executor.CommandResult) {
@@ -106,7 +212,7 @@ func exportResults(spec *model.Spec, results []*executor.CommandResult) {
 			fmt.Printf("%s (@%s): %s\n", result.Wallet, walletName, v)
 			continue
 		}
-		v, err := json.Marshal(prettify(result.Result))
+		v, err := json.MarshalIndent(prettify(result.Result), "", "\t")
 		if err != nil {
 			panic(err)
 		}
@@ -115,7 +221,7 @@ func exportResults(spec *model.Spec, results []*executor.CommandResult) {
 }
 
 func jsonPrint(v interface{}) {
-	vv, err := json.Marshal(v)
+	vv, err := json.MarshalIndent(v, "", "\t")
 	if err != nil {
 		panic(err)
 	}

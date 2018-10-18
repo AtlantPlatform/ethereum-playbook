@@ -302,13 +302,20 @@ func (spec *WalletSpec) FieldValue(name FieldName) interface{} {
 }
 
 func newWalletFieldReference(ctx AppContext, root *Spec, value string) (*WalletFieldReference, error) {
-	refStr := strings.TrimPrefix(value, walletPrefix)
-	refParts := strings.Split(refStr, refDelim)
+	refParts := strings.Split(value[1:], refDelim)
+	walletName := refParts[0]
 	if len(refParts) != 2 {
+		if _, ok := root.Wallets.WalletSpec(refParts[0]); ok {
+			// referenced a wallet by name
+			ref := &WalletFieldReference{
+				WalletName: refParts[0],
+				FieldName:  WalletSpecAddressField,
+			}
+			return ref, nil
+		}
 		err := errors.New("reference must have two parts: walletName.fieldName")
 		return nil, err
 	}
-	walletName := refParts[0]
 	fieldName := FieldName(refParts[1])
 	wallet, ok := root.Wallets.WalletSpec(walletName)
 	if !ok {

@@ -3,14 +3,17 @@ package model
 import log "github.com/Sirupsen/logrus"
 
 type Spec struct {
-	Inventory Inventory `yaml:"INVENTORY"`
-	Wallets   Wallets   `yaml:"WALLETS"`
-	Contracts Contracts `yaml:"CONTRACTS"`
-	Targets   Targets   `yaml:"TARGETS"`
+	Config    *ConfigSpec `yaml:"CONFIG"`
+	Inventory Inventory   `yaml:"INVENTORY"`
+	Wallets   Wallets     `yaml:"WALLETS"`
+	Contracts Contracts   `yaml:"CONTRACTS"`
+	Targets   Targets     `yaml:"TARGETS"`
 
 	ReadCmds  ReadCmds  `yaml:"READ"`
 	WriteCmds WriteCmds `yaml:"WRITE"`
 	CallCmds  CallCmds  `yaml:"CALL"`
+
+	uniqueNames map[string]struct{} `yaml:"-"`
 }
 
 func (spec *Spec) Validate(ctx AppContext) bool {
@@ -18,6 +21,12 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 		"model": "Spec",
 		"func":  "Validate",
 	})
+	if spec.Config == nil {
+		spec.Config = DefaultConfigSpec
+	} else if !spec.Config.Validate() {
+		validateLog.Errorln("config spec validation failed")
+		return false
+	}
 	if len(ctx.AppCommand()) > 0 {
 		if spec.Inventory == nil {
 			validateLog.Errorln("spec must contain INVENTORY section")
@@ -46,6 +55,7 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			return false
 		}
 	}
+	spec.uniqueNames = make(map[string]struct{})
 	if spec.CallCmds != nil {
 		if !spec.CallCmds.Validate(ctx, spec) {
 			validateLog.Errorln("call cmds spec validation failed")
@@ -71,6 +81,17 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 		}
 	}
 	return true
+}
+
+func (spec *Spec) ArgCount(name string) int {
+	if cmd, ok := spec.CallCmds[name]; ok {
+		return cmd.ArgCount()
+	} else if cmd, ok := spec.ReadCmds[name]; ok {
+		return cmd.ArgCount()
+	} else if cmd, ok := spec.WriteCmds[name]; ok {
+		return cmd.ArgCount()
+	}
+	return 0
 }
 
 type FieldName string

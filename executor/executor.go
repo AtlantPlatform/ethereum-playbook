@@ -2,18 +2,19 @@ package executor
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"math/big"
 	"strings"
 
-	"github.com/AtlantPlatform/ethereum-playbook/model"
 	"github.com/AtlantPlatform/ethfw"
+	log "github.com/Sirupsen/logrus"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/AtlantPlatform/ethereum-playbook/model"
 )
 
 type Executor struct {
@@ -61,14 +62,14 @@ type CommandResult struct {
 	Error  error
 }
 
-func (e *Executor) runCallCmd(ctx context.Context, cmdSpec *model.CallCmdSpec) []*CommandResult {
+func (e *Executor) runCallCmd(ctx model.AppContext, cmdSpec *model.CallCmdSpec) []*CommandResult {
 	matchingWallets := cmdSpec.MatchingWallets()
 	results := make([]*CommandResult, len(matchingWallets))
 	if len(matchingWallets) > 0 {
 		for offset, walletSpec := range matchingWallets {
 			walletAddress := common.HexToAddress(walletSpec.Address)
 			params := replaceWalletPlaceholders(cmdSpec.ParamValues(), walletAddress)
-			params = replaceWalletFieldReferences(params, e.root)
+			params = replaceReferences(ctx, params, e.root)
 			result := &CommandResult{
 				Wallet: walletSpec.Address,
 			}
@@ -78,13 +79,13 @@ func (e *Executor) runCallCmd(ctx context.Context, cmdSpec *model.CallCmdSpec) [
 		return results
 	}
 	result := &CommandResult{}
-	params := replaceWalletFieldReferences(cmdSpec.ParamValues(), e.root)
+	params := replaceReferences(ctx, cmdSpec.ParamValues(), e.root)
 	result.Error = e.ethRPC.CallContext(ctx, &result.Result, cmdSpec.Method, params...)
 	results = append(results, result)
 	return results
 }
 
-func (e *Executor) runReadCmd(ctx context.Context, cmdSpec *model.ReadCmdSpec) []*CommandResult {
+func (e *Executor) runReadCmd(ctx model.AppContext, cmdSpec *model.ReadCmdSpec) []*CommandResult {
 	if !cmdSpec.Instance.IsDeployed() {
 		return []*CommandResult{{
 			Error: errors.New("contract instance is not deployed yet"),
@@ -98,7 +99,7 @@ func (e *Executor) runReadCmd(ctx context.Context, cmdSpec *model.ReadCmdSpec) [
 		for offset, walletSpec := range matchingWallets {
 			walletAddress := common.HexToAddress(walletSpec.Address)
 			params := replaceWalletPlaceholders(cmdSpec.ParamValues(), walletAddress)
-			params = replaceWalletFieldReferences(params, e.root)
+			params = replaceReferences(ctx, params, e.root)
 			result := &CommandResult{
 				Wallet: walletSpec.Address,
 			}
@@ -115,7 +116,7 @@ func (e *Executor) runReadCmd(ctx context.Context, cmdSpec *model.ReadCmdSpec) [
 		Context: ctx,
 	}
 	result := &CommandResult{}
-	params := replaceWalletFieldReferences(cmdSpec.ParamValues(), e.root)
+	params := replaceReferences(ctx, cmdSpec.ParamValues(), e.root)
 	result.Error = binding.Call(opts, &result.Result, cmdSpec.Method, params...)
 	results = append(results, result)
 	return results
@@ -169,7 +170,7 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 			return []*CommandResult{result}
 		}
 		result.Error = e.ethCli.SendTransaction(ctx, signedTx)
-		result.Result = "tx:" + strings.ToLower(tx.Hash().Hex())
+		result.Result = "tx:" + strings.ToLower(signedTx.Hash().Hex())
 		return []*CommandResult{result}
 	}
 	return nil
@@ -193,12 +194,27 @@ func replaceWalletPlaceholders(params []interface{}, walletAddress common.Addres
 	return newParams
 }
 
-func replaceWalletFieldReferences(params []interface{}, root *model.Spec) []interface{} {
+func replaceReferences(ctx model.AppContext, params []interface{}, root *model.Spec) []interface{} {
 	newParams := append([]interface{}{}, params...)
 	for i, param := range newParams {
 		if ref, ok := param.(*model.WalletFieldReference); ok {
 			wallet, _ := root.Wallets.WalletSpec(ref.WalletName)
-			newParams[i] = wallet.FieldValue(ref.FieldName)
+			walletField := wallet.FieldValue(ref.FieldName)
+			switch ref.FieldName {
+			case model.WalletSpecBalanceField:
+				newParams[i] = walletField.(*big.Int)
+			case model.WalletSpecAddressField:
+				newParams[i] = common.HexToAddress(walletField.(string))
+			default: // as-is
+				newParams[i] = walletField
+			}
+		}
+		if arg, ok := param.(*model.ArgReference); ok {
+			if arg.ArgID < 0 {
+				log.WithField("command", ctx.AppCommand()).Errorln("insufficient arguments provided")
+				return nil
+			}
+			newParams[i] = ctx.AppCommandArgs()[arg.ArgID]
 		}
 	}
 	return newParams

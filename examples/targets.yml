@@ -41,6 +41,14 @@ CALL:
     params:
       - {type: address, value: @@}
       - latest
+  txinfo:
+    method: eth_getTransactionByHash
+    params:
+      - {type: string, reference: $1}
+  txreceipt:
+    method: eth_getTransactionReceipt
+    params:
+      - {type: string, reference: $1}
   miner-rebase:
     method: miner_setEtherbase
     params:

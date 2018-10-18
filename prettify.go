@@ -12,7 +12,7 @@ func prettifyValue(v interface{}) interface{} {
 	switch vv := v.(type) {
 	case string:
 		if strings.HasPrefix(vv, "tx:") {
-			return strings.TrimPrefix(vv, "tx:")
+			return vv[3:]
 		}
 		if strings.HasPrefix(vv, "0x") {
 			if common.IsHexAddress(vv) {
@@ -47,6 +47,12 @@ func prettify(v interface{}) interface{} {
 		for i, vvv := range vv {
 			vv[i] = prettifyValue(vvv)
 		}
+	case map[string]interface{}:
+		container := make(map[string]interface{})
+		for key, vvv := range vv {
+			container[key] = prettifyValue(vvv)
+		}
+		return container
 	default:
 		return prettifyValue(v)
 	}

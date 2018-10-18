@@ -27,6 +27,17 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 			wallet, _ := root.Wallets.WalletSpec(ref.WalletName)
 			valueStrParts[i] = wallet.FieldValue(ref.FieldName).(*big.Int).String()
 		}
+		if isArgRef(part) {
+			ref, err := newArgReference(ctx, root, part)
+			if err != nil {
+				return nil, err
+			}
+			if ref.ArgID < 0 {
+				err := errors.New("insufficient arguments provided")
+				return nil, err
+			}
+			valueStrParts[i] = ctx.AppCommandArgs()[ref.ArgID]
+		}
 	}
 	valueStr = strings.Join(valueStrParts, " ")
 
@@ -63,6 +74,18 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 		Denominator: valueDenomintator,
 	}
 	return extended, nil
+}
+
+func (v Valuer) CountArgsUsing(set map[int]struct{}) {
+	valueStr := string(v)
+	valueStrParts := strings.Split(valueStr, " ")
+	for _, part := range valueStrParts {
+		if isArgRef(part) {
+			if argID, err := argReferenceID(part); err == nil {
+				set[argID] = struct{}{}
+			}
+		}
+	}
 }
 
 type ExtendedValue struct {

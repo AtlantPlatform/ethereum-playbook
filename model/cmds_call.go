@@ -9,7 +9,17 @@ import (
 type CallCmds map[string]*CallCmdSpec
 
 func (cmds CallCmds) Validate(ctx AppContext, spec *Spec) bool {
+	validateLog := log.WithFields(log.Fields{
+		"Section": "CallCmds",
+		"func":    "Validate",
+	})
 	for name, cmd := range cmds {
+		if _, ok := spec.uniqueNames[name]; ok {
+			validateLog.WithField("name", name).Errorln("cmd name is not unique")
+			return false
+		} else {
+			spec.uniqueNames[name] = struct{}{}
+		}
 		if !cmd.Validate(ctx, name, spec) {
 			return false
 		}
@@ -23,7 +33,8 @@ func (cmds CallCmds) CallCmdSpec(name string) (*CallCmdSpec, bool) {
 }
 
 type CallCmdSpec struct {
-	ParamSpec `yaml:",inline"`
+	ParamSpec   `yaml:",inline"`
+	Description string `yaml:"desc"`
 
 	Wallet string `yaml:"wallet"`
 	Method string `yaml:"method"`
@@ -51,8 +62,8 @@ func (spec *CallCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 	} else {
 		spec.walletRx = rx
 	}
-	spec.matching = root.Wallets.GetAll(spec.walletRx)
 	if hasWalletName {
+		spec.matching = root.Wallets.GetAll(spec.walletRx)
 		if len(spec.matching) == 0 {
 			validateLog.Errorln("no wallets are matching the specified regexp")
 			return false
@@ -70,4 +81,10 @@ func (spec *CallCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 
 func (spec *CallCmdSpec) MatchingWallets() []*WalletSpec {
 	return spec.matching
+}
+
+func (spec *CallCmdSpec) ArgCount() int {
+	set := make(map[int]struct{})
+	spec.ParamSpec.CountArgsUsing(set)
+	return len(set)
 }

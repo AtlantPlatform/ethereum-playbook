@@ -1,8 +1,11 @@
 package model
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -44,9 +47,7 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 	case map[interface{}]interface{}:
 		typ, ok := p["type"]
 		if !ok {
-			// default to string
-			spec.paramValues[paramID] = param
-			return true
+			typ = ParamTypeString
 		}
 		valueStr := nillableStr(p["value"])
 		referenceStr := nillableStr(p["reference"])
@@ -58,38 +59,59 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 
 		if len(referenceStr) > 0 {
 			refLog := validateLog.WithField("reference", referenceStr)
-			if !isWalletRef(referenceStr) {
-				refLog.Errorln("reference string is not a wallet field reference")
-				return false
-			}
-			ref, err := newWalletFieldReference(ctx, root, referenceStr)
-			if err != nil {
-				refLog.WithError(err).Errorln("failed to resolve reference")
-				return false
-			}
-			spec.paramValues[paramID] = ref
-			return true
-		}
-
-		// allow cross-reference to the wallet section,
-		// if param type is address, e.g. @bob
-		if paramType == ParamTypeAddress {
-			if isWalletRef(valueStr) {
-				walletName := strings.TrimPrefix(valueStr, walletPrefix)
-				if walletName == walletPrefix {
-					spec.paramValues[paramID] = PlaceholderAddr // will be checked later
+			if isWalletRef(referenceStr) {
+				if referenceStr[1:] == walletPrefix {
+					spec.paramValues[paramID] = PlaceholderAddr // will be resolved later
 					return true
 				}
-				if wallet, existing := root.Wallets.WalletSpec(walletName); !existing {
+				ref, err := newWalletFieldReference(ctx, root, referenceStr)
+				if err != nil {
+					refLog.WithError(err).Errorln("failed to resolve reference")
+					return false
+				}
+				spec.paramValues[paramID] = ref // will be resolved later
+				return true
+			} else {
+				referenceStrParts := strings.Split(referenceStr, " ")
+				for i, part := range referenceStrParts {
+					if isArgRef(part) {
+						ref, err := newArgReference(ctx, root, part)
+						if err != nil {
+							refLog.WithError(err).Errorln("failed to resolve reference")
+							return false
+						}
+						if ref.ArgID < 0 {
+							referenceStrParts[i] = part
+							continue
+						}
+						referenceStrParts[i] = ctx.AppCommandArgs()[ref.ArgID]
+					}
+				}
+				referenceStr = ""
+				valueStr = strings.Join(referenceStrParts, " ")
+				// continue with parsing
+			}
+		} else if paramType == ParamTypeAddress {
+			// allow cross-reference to the wallet section,
+			// if param type is address, e.g. @bob
+			if isWalletRef(valueStr) {
+				walletName := valueStr[1:]
+				if walletName == walletPrefix {
+					spec.paramValues[paramID] = PlaceholderAddr // will be resolved later
+					return true
+				}
+				if _, existing := root.Wallets.WalletSpec(walletName); !existing {
 					validateLog.WithField("wallet", walletName).Errorln("unknown wallet reference")
 					return false
-				} else {
-					spec.paramValues[paramID] = common.HexToAddress(wallet.Address)
-					return true
 				}
+				ref := &WalletFieldReference{
+					WalletName: walletName,
+					FieldName:  WalletSpecAddressField,
+				}
+				spec.paramValues[paramID] = ref // will be resolved later
+				return true
 			}
 		}
-
 		v, ok := parseParam(evaler, paramType, valueStr)
 		if !ok {
 			validateLog.WithFields(log.Fields{
@@ -103,19 +125,45 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 	case string:
 		spec.paramValues[paramID] = param
 	default:
-		validateLog.Println("unsupported param type: expected string or object {type, value}")
+		validateLog.Errorln("unsupported param type: expected string or object {type, value}")
 		return false
 	}
 	return true
 }
 
+func (spec *ParamSpec) CountArgsUsing(set map[int]struct{}) {
+	for _, param := range spec.Params {
+		p, ok := param.(map[interface{}]interface{})
+		if !ok {
+			continue
+		}
+		referenceStr := nillableStr(p["reference"])
+		if len(referenceStr) == 0 {
+			continue
+		}
+		referenceStrParts := strings.Split(referenceStr, " ")
+		for _, part := range referenceStrParts {
+			if isArgRef(part) {
+				if argID, err := argReferenceID(part); err == nil {
+					set[argID] = struct{}{}
+				}
+			}
+		}
+	}
+}
+
 const (
 	walletPrefix string = "@"
+	argPrefix    string = "$"
 	refDelim     string = "."
 )
 
 func isWalletRef(str string) bool {
 	return strings.HasPrefix(str, walletPrefix)
+}
+
+func isArgRef(str string) bool {
+	return strings.HasPrefix(str, argPrefix)
 }
 
 func isMathExp(str string) bool {
@@ -204,8 +252,19 @@ func parseParam(evaler *Evaler, typ ParamType, value string) (vv interface{}, ok
 			ok = true
 		}
 	case ParamTypeBytes:
-		vv = []byte(value)
-		ok = true
+		if strings.HasPrefix(value, "0x") {
+			src := []byte(value[2:])
+			dst := make([]byte, len(src)/2)
+			if _, err := hex.Decode(dst, src); err != nil {
+				ok = false
+				return
+			}
+			vv = dst
+			ok = true
+		} else {
+			vv = []byte(value)
+			ok = true
+		}
 	case ParamTypeBoolean:
 		if result, err := evaler.Run(value, ExprTypeBool); err == nil {
 			vv = result
@@ -280,4 +339,36 @@ func nillableStr(str interface{}) string {
 		return ""
 	}
 	return fmt.Sprintf("%v", str)
+}
+
+func newArgReference(ctx AppContext, root *Spec, value string) (*ArgReference, error) {
+	argID, err := strconv.Atoi(value[1:])
+	if err != nil {
+		err := errors.New("reference must be of the form $0, $1, ...")
+		return nil, err
+	}
+	args := ctx.AppCommandArgs()
+	if argID > len(args)-1 {
+		noRef := &ArgReference{
+			ArgID: -1,
+		}
+		return noRef, nil
+	}
+	ref := &ArgReference{
+		ArgID: argID,
+	}
+	return ref, nil
+}
+
+func argReferenceID(value string) (int, error) {
+	argID, err := strconv.Atoi(value[1:])
+	if err != nil {
+		err := errors.New("reference must be of the form $0, $1, ...")
+		return -1, err
+	}
+	return argID, nil
+}
+
+type ArgReference struct {
+	ArgID int
 }

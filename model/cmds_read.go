@@ -10,7 +10,17 @@ import (
 type ReadCmds map[string]*ReadCmdSpec
 
 func (cmds ReadCmds) Validate(ctx AppContext, spec *Spec) bool {
+	validateLog := log.WithFields(log.Fields{
+		"Section": "ReadCmds",
+		"func":    "Validate",
+	})
 	for name, cmd := range cmds {
+		if _, ok := spec.uniqueNames[name]; ok {
+			validateLog.WithField("name", name).Errorln("cmd name is not unique")
+			return false
+		} else {
+			spec.uniqueNames[name] = struct{}{}
+		}
 		if !cmd.Validate(ctx, name, spec) {
 			return false
 		}
@@ -24,7 +34,8 @@ func (cmds ReadCmds) ReadCmdSpec(name string) (*ReadCmdSpec, bool) {
 }
 
 type ReadCmdSpec struct {
-	ParamSpec `yaml:",inline"`
+	ParamSpec   `yaml:",inline"`
+	Description string `yaml:"desc"`
 
 	Wallet string `yaml:"wallet"`
 	Method string `yaml:"method"`
@@ -54,8 +65,8 @@ func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 	} else {
 		spec.walletRx = rx
 	}
-	spec.matching = root.Wallets.GetAll(spec.walletRx)
 	if hasWalletName {
+		spec.matching = root.Wallets.GetAll(spec.walletRx)
 		if len(spec.matching) == 0 {
 			validateLog.Errorln("no wallets are matching the specified regexp")
 			return false
@@ -105,4 +116,10 @@ func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 
 func (spec *ReadCmdSpec) MatchingWallets() []*WalletSpec {
 	return spec.matching
+}
+
+func (spec *ReadCmdSpec) ArgCount() int {
+	set := make(map[int]struct{})
+	spec.ParamSpec.CountArgsUsing(set)
+	return len(set)
 }

@@ -10,7 +10,17 @@ import (
 type WriteCmds map[string]*WriteCmdSpec
 
 func (cmds WriteCmds) Validate(ctx AppContext, spec *Spec) bool {
+	validateLog := log.WithFields(log.Fields{
+		"Section": "WriteCmds",
+		"func":    "Validate",
+	})
 	for name, cmd := range cmds {
+		if _, ok := spec.uniqueNames[name]; ok {
+			validateLog.WithField("name", name).Errorln("cmd name is not unique")
+			return false
+		} else {
+			spec.uniqueNames[name] = struct{}{}
+		}
 		if !cmd.Validate(ctx, name, spec) {
 			return false
 		}
@@ -24,7 +34,8 @@ func (cmds WriteCmds) WriteCmdSpec(name string) (*WriteCmdSpec, bool) {
 }
 
 type WriteCmdSpec struct {
-	ParamSpec `yaml:",inline"`
+	ParamSpec   `yaml:",inline"`
+	Description string `yaml:"desc"`
 
 	Wallet string `yaml:"wallet"`
 	Sticky string `yaml:"sticky"`
@@ -138,11 +149,9 @@ func (spec *WriteCmdSpec) MatchingWallet() *WalletSpec {
 	return spec.matching
 }
 
-// 	validDenominations := append([]string{}, commonDenominations...)
-// 	for _, contract := range root.Contracts {
-// 		for _, instance := range contract.Instances {
-// 			if len(instance.tokenSymbol) > 0 {
-// 				validDenominations = append(validDenominations, strings.ToLower(instance.tokenSymbol))
-// 			}
-// 		}
-// 	}
+func (spec *WriteCmdSpec) ArgCount() int {
+	set := make(map[int]struct{})
+	spec.ParamSpec.CountArgsUsing(set)
+	spec.Value.CountArgsUsing(set)
+	return len(set)
+}
