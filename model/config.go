@@ -9,11 +9,11 @@ import (
 )
 
 type ConfigSpec struct {
-	GasPrice string `yaml:"gas_price"`
-	GasLimit string `yaml:"gas_limit"`
-	ChainID  string `yaml:"chain_id"`
+	GasPrice string `yaml:"gasPrice"`
+	GasLimit string `yaml:"gasLimit"`
+	ChainID  string `yaml:"chainID"`
 
-	SpecDir string `yaml:"spec_dir"`
+	SpecDir string `yaml:"-"`
 }
 
 var DefaultConfigSpec = &ConfigSpec{
