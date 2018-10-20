@@ -40,6 +40,13 @@ func New(ctx model.AppContext, root *model.Spec) (*Executor, error) {
 	return executor, nil
 }
 
+func (e *Executor) RunTarget(ctx model.AppContext, targetName string) (<-chan []*CommandResult, bool) {
+	if target, ok := e.root.Targets[targetName]; ok {
+		return e.runTarget(ctx, targetName, target), true
+	}
+	return nil, false
+}
+
 func (e *Executor) RunCommand(ctx model.AppContext, cmdName string) ([]*CommandResult, bool) {
 	if cmdSpec, ok := e.root.CallCmds[cmdName]; ok {
 		return e.runCallCmd(ctx, cmdSpec), true
@@ -54,6 +61,7 @@ func (e *Executor) RunCommand(ctx model.AppContext, cmdName string) ([]*CommandR
 }
 
 type CommandResult struct {
+	Name   string
 	Wallet string
 	Result interface{}
 	Error  error

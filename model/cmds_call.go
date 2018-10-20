@@ -10,7 +10,7 @@ type CallCmds map[string]*CallCmdSpec
 
 func (cmds CallCmds) Validate(ctx AppContext, spec *Spec) bool {
 	validateLog := log.WithFields(log.Fields{
-		"Section": "CallCmds",
+		"section": "CallCmds",
 		"func":    "Validate",
 	})
 	for name, cmd := range cmds {
@@ -83,8 +83,12 @@ func (spec *CallCmdSpec) MatchingWallets() []*WalletSpec {
 	return spec.matching
 }
 
+func (spec *CallCmdSpec) CountArgsUsing(set map[int]struct{}) {
+	spec.ParamSpec.CountArgsUsing(set)
+}
+
 func (spec *CallCmdSpec) ArgCount() int {
 	set := make(map[int]struct{})
-	spec.ParamSpec.CountArgsUsing(set)
+	spec.CountArgsUsing(set)
 	return len(set)
 }

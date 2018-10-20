@@ -83,6 +83,16 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 	return true
 }
 
+func (spec *Spec) CountArgsUsing(set map[int]struct{}, name string) {
+	if cmd, ok := spec.CallCmds[name]; ok {
+		cmd.CountArgsUsing(set)
+	} else if cmd, ok := spec.ReadCmds[name]; ok {
+		cmd.CountArgsUsing(set)
+	} else if cmd, ok := spec.WriteCmds[name]; ok {
+		cmd.CountArgsUsing(set)
+	}
+}
+
 func (spec *Spec) ArgCount(name string) int {
 	if cmd, ok := spec.CallCmds[name]; ok {
 		return cmd.ArgCount()

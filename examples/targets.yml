@@ -10,21 +10,18 @@ WALLETS:
     keystore: "var/chain/keystore"
     password: "1234"
 
-## TBD(xlab) — not implemented
-# TARGETS:
-#   run:
-#     - new-account
-#     - balance
-#     - miner-rebase
-#     - miner-start
-#     - wait: 20s
-#     - miner-stop
-#     - balance
-#     - burn-all
-#     - await: burn-all
-#     - txinfo: burn-all
-#     - balance
-## TBD!!!
+TARGETS:
+  run:
+    - miner-rebase
+    - miner-start
+    - balance
+    - burn-all
+    - balance
+  view:
+    - txinfo
+    - txreceipt
+  done:
+    - miner-stop
 
 CALL:
   block:
@@ -33,8 +30,6 @@ CALL:
     method: personal_newAccount
     params:
       - {type: string, reference: @alice.password}
-    output:
-      - @alice.address
   balance:
     wallet: alice
     method: eth_getBalance

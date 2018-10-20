@@ -28,6 +28,7 @@ var (
 	solcPath  = flag.String("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
 	nodeGroup = flag.String("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
 	printHelp = flag.Bool("h", false, "Print help.")
+	logLevel  *int
 )
 
 func init() {
@@ -35,6 +36,7 @@ func init() {
 	app.StringOpt("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
 	app.StringOpt("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
 	app.BoolOpt("h", false, "Print help.")
+	logLevel = app.IntOpt("l log-level", 4, "Sets the log level (default: info)")
 }
 
 func main() {
@@ -53,6 +55,7 @@ func main() {
 			app.PrintLongHelp()
 			os.Exit(0)
 		}
+		log.SetLevel(log.Level(*logLevel))
 	}
 	app.Action = func() {
 		validateSpec(spec, "", nil)
@@ -64,6 +67,19 @@ func main() {
 }
 
 func registerCommands(app *cli.Cli, spec *model.Spec) {
+	targetsNames := make([]string, 0, len(spec.Targets))
+	for name := range spec.Targets {
+		targetsNames = append(targetsNames, name)
+	}
+	sort.Sort(sort.StringSlice(targetsNames))
+	for _, name := range targetsNames {
+		targetSpec, _ := spec.Targets.TargetSpec(name)
+		argCount := targetSpec.ArgCount(spec)
+		cmdNames := targetSpec.CmdNames()
+		desc := fmt.Sprintf("Target with %d commands, accepts %d args", len(cmdNames), argCount)
+		app.Command(name, desc, newTarget(spec, name, argCount))
+	}
+
 	callCmdNames := make([]string, 0, len(spec.CallCmds))
 	for name := range spec.CallCmds {
 		callCmdNames = append(callCmdNames, name)
@@ -72,11 +88,11 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for _, name := range callCmdNames {
 		cmd, _ := spec.CallCmds.CallCmdSpec(name)
 		desc := cmd.Description
-		args := cmd.ArgCount()
+		argCount := cmd.ArgCount()
 		if len(desc) == 0 {
-			desc = fmt.Sprintf("Generic CALL command, accepts %d args", args)
+			desc = fmt.Sprintf("Generic CALL command, accepts %d args", argCount)
 		}
-		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+		app.Command(name, desc, newCommand(spec, name, argCount))
 	}
 
 	readCmdNames := make([]string, 0, len(spec.ReadCmds))
@@ -87,11 +103,11 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for _, name := range readCmdNames {
 		cmd, _ := spec.ReadCmds.ReadCmdSpec(name)
 		desc := cmd.Description
-		args := cmd.ArgCount()
+		argCount := cmd.ArgCount()
 		if len(desc) == 0 {
-			desc = fmt.Sprintf("Generic READ command, accepts %d args", args)
+			desc = fmt.Sprintf("Generic READ command, accepts %d args", argCount)
 		}
-		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+		app.Command(name, desc, newCommand(spec, name, argCount))
 	}
 
 	writeCmdNames := make([]string, 0, len(spec.WriteCmds))
@@ -102,11 +118,11 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for _, name := range writeCmdNames {
 		cmd, _ := spec.WriteCmds.WriteCmdSpec(name)
 		desc := cmd.Description
-		args := cmd.ArgCount()
+		argCount := cmd.ArgCount()
 		if len(desc) == 0 {
-			desc = fmt.Sprintf("Generic WRITE command, accepts %d args", args)
+			desc = fmt.Sprintf("Generic WRITE command, accepts %d args", argCount)
 		}
-		app.Command(name, desc, newCommand(spec, name, cmd.ArgCount()))
+		app.Command(name, desc, newCommand(spec, name, argCount))
 	}
 }
 
@@ -133,7 +149,38 @@ func newCommand(spec *model.Spec, name string, argCount int) cli.CmdInitializer 
 			if !found {
 				cmdLog.Fatalln("command not found")
 			}
-			exportResults(spec, results)
+			exportResultsText(spec, results, "")
+		}
+	}
+}
+
+func newTarget(spec *model.Spec, name string, argCount int) cli.CmdInitializer {
+	return func(cmd *cli.Cmd) {
+		args := make([]*string, argCount)
+		for i := 0; i < argCount; i++ {
+			args[i] = cmd.StringArg(fmt.Sprintf("ARG%d", i+1), "", fmt.Sprintf("Target argument $%d", i+1))
+		}
+		cmd.Action = func() {
+			appArgs := []string{name}
+			for _, arg := range args {
+				appArgs = append(appArgs, *arg)
+			}
+			ctx := validateSpec(spec, name, appArgs)
+			cmdLog := log.WithFields(log.Fields{
+				"target": name,
+			})
+			executor, err := executor.New(ctx, spec)
+			if err != nil {
+				cmdLog.WithError(err).Fatalln("failed to init executor")
+			}
+			resultC, found := executor.RunTarget(ctx, name)
+			if !found {
+				cmdLog.Fatalln("target not found")
+			}
+			for results := range resultC {
+				fmt.Printf("%s:\n", results[0].Name)
+				exportResultsText(spec, results, "\t")
+			}
 		}
 	}
 }
@@ -188,44 +235,41 @@ func validateSpec(spec *model.Spec, appCommand string, appArgs []string) model.A
 	return ctx
 }
 
-func exportResults(spec *model.Spec, results []*executor.CommandResult) {
+func exportResultsText(spec *model.Spec, results []*executor.CommandResult, padding string) {
 	if len(results) == 0 {
-		jsonPrint(&ErrorObject{Error: "no results"})
+		text := jsonPaddedString(&ErrorObject{Error: "no results"}, padding)
+		fmt.Println(padding + text)
 		return
 	} else if len(results) == 1 {
 		if len(results[0].Wallet) == 0 {
 			if results[0].Error != nil {
-				jsonPrint(&ErrorObject{Error: results[0].Error.Error()})
+				text := jsonPaddedString(&ErrorObject{Error: results[0].Error.Error()}, padding)
+				fmt.Println(padding + text)
 				return
 			}
-			jsonPrint(prettify(results[0].Result))
+			text := jsonPaddedString(prettify(results[0].Result), padding)
+			fmt.Println(padding + text)
 			return
 		}
 	}
 	for _, result := range results {
 		walletName := spec.Wallets.NameOf(result.Wallet)
 		if result.Error != nil {
-			v, err := json.Marshal(&ErrorObject{Error: result.Error.Error()})
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("%s (@%s): %s\n", result.Wallet, walletName, v)
+			text := jsonPaddedString(&ErrorObject{Error: result.Error.Error()}, padding)
+			fmt.Printf("%s%s (@%s): %s\n", padding, result.Wallet, walletName, text)
 			continue
 		}
-		v, err := json.MarshalIndent(prettify(result.Result), "", "\t")
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("%s (@%s): %s\n", result.Wallet, walletName, v)
+		text := jsonPaddedString(prettify(result.Result), padding)
+		fmt.Printf("%s%s (@%s): %s\n", padding, result.Wallet, walletName, text)
 	}
 }
 
-func jsonPrint(v interface{}) {
-	vv, err := json.MarshalIndent(v, "", "\t")
+func jsonPaddedString(v interface{}, padding string) string {
+	vv, err := json.MarshalIndent(v, padding, "\t")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(vv))
+	return string(vv)
 }
 
 type ErrorObject struct {

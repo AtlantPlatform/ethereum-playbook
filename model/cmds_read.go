@@ -11,7 +11,7 @@ type ReadCmds map[string]*ReadCmdSpec
 
 func (cmds ReadCmds) Validate(ctx AppContext, spec *Spec) bool {
 	validateLog := log.WithFields(log.Fields{
-		"Section": "ReadCmds",
+		"section": "ReadCmds",
 		"func":    "Validate",
 	})
 	for name, cmd := range cmds {
@@ -118,8 +118,12 @@ func (spec *ReadCmdSpec) MatchingWallets() []*WalletSpec {
 	return spec.matching
 }
 
+func (spec *ReadCmdSpec) CountArgsUsing(set map[int]struct{}) {
+	spec.ParamSpec.CountArgsUsing(set)
+}
+
 func (spec *ReadCmdSpec) ArgCount() int {
 	set := make(map[int]struct{})
-	spec.ParamSpec.CountArgsUsing(set)
+	spec.CountArgsUsing(set)
 	return len(set)
 }

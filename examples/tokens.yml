@@ -109,3 +109,11 @@ WRITE:
     wallet: bob
     to: alice
     value: 25 * 1e18 PTO123
+
+TARGETS:
+  make-transfers:
+    - token-balances
+    - mint-100-tokens
+    - transfer-50-tokens
+    - send-25-tokens
+    - token-balances

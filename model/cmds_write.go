@@ -11,7 +11,7 @@ type WriteCmds map[string]*WriteCmdSpec
 
 func (cmds WriteCmds) Validate(ctx AppContext, spec *Spec) bool {
 	validateLog := log.WithFields(log.Fields{
-		"Section": "WriteCmds",
+		"section": "WriteCmds",
 		"func":    "Validate",
 	})
 	for name, cmd := range cmds {
@@ -70,6 +70,9 @@ func (spec *WriteCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool
 		return false
 	} else {
 		spec.walletRx = rx
+	}
+	if len(spec.Sticky) == 0 {
+		spec.Sticky = name
 	}
 	spec.matching = root.Wallets.GetOne(spec.walletRx, spec.Sticky)
 	if hasWalletName {
@@ -145,9 +148,13 @@ func (spec *WriteCmdSpec) MatchingWallet() *WalletSpec {
 	return spec.matching
 }
 
-func (spec *WriteCmdSpec) ArgCount() int {
-	set := make(map[int]struct{})
+func (spec *WriteCmdSpec) CountArgsUsing(set map[int]struct{}) {
 	spec.ParamSpec.CountArgsUsing(set)
 	spec.Value.CountArgsUsing(set)
+}
+
+func (spec *WriteCmdSpec) ArgCount() int {
+	set := make(map[int]struct{})
+	spec.CountArgsUsing(set)
 	return len(set)
 }

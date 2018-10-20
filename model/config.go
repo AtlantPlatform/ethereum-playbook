@@ -3,15 +3,17 @@ package model
 import (
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/AtlantPlatform/ethfw"
 	log "github.com/Sirupsen/logrus"
 )
 
 type ConfigSpec struct {
-	GasPrice string `yaml:"gasPrice"`
-	GasLimit string `yaml:"gasLimit"`
-	ChainID  string `yaml:"chainID"`
+	GasPrice     string `yaml:"gasPrice"`
+	GasLimit     string `yaml:"gasLimit"`
+	ChainID      string `yaml:"chainID"`
+	AwaitTimeout string `yaml:"awaitTimeout"`
 
 	SpecDir string `yaml:"-"`
 }
@@ -22,7 +24,8 @@ var DefaultConfigSpec = &ConfigSpec{
 	ChainID:  "1",
 	GasPrice: ethfw.Gwei(40).String(),
 	// hard limit, real limit is estimated
-	GasLimit: "10000000",
+	GasLimit:     "10000000",
+	AwaitTimeout: "10m",
 }
 
 func (spec *ConfigSpec) Validate() bool {
@@ -50,6 +53,13 @@ func (spec *ConfigSpec) Validate() bool {
 	} else {
 		spec.ChainID = DefaultConfigSpec.ChainID
 	}
+	if len(spec.AwaitTimeout) > 0 {
+		if _, err := spec.AwaitTimeoutDuration(); err != nil {
+			validateLog.Errorln("failed to parse awaitTimeout")
+		}
+	} else {
+		spec.AwaitTimeout = DefaultConfigSpec.AwaitTimeout
+	}
 	return true
 }
 
@@ -67,4 +77,8 @@ func (spec *ConfigSpec) GasPriceInt() (*big.Int, bool) {
 
 func (spec *ConfigSpec) ChainIDInt() (*big.Int, bool) {
 	return big.NewInt(0).SetString(spec.ChainID, 10)
+}
+
+func (spec *ConfigSpec) AwaitTimeoutDuration() (time.Duration, error) {
+	return time.ParseDuration(spec.AwaitTimeout)
 }
