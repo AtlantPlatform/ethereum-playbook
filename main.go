@@ -19,7 +19,7 @@ import (
 
 	"github.com/AtlantPlatform/ethereum-playbook/executor"
 	"github.com/AtlantPlatform/ethereum-playbook/model"
-	"github.com/AtlantPlatform/ethereum-playbook/yaml"
+	"github.com/AtlantPlatform/yaml"
 )
 
 var app = cli.App("ethereum-playbook", "Ethereum contracts deployment and management tool.")
