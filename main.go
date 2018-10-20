@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"sync"
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
@@ -169,18 +170,24 @@ func newTarget(spec *model.Spec, name string, argCount int) cli.CmdInitializer {
 			cmdLog := log.WithFields(log.Fields{
 				"target": name,
 			})
-			executor, err := executor.New(ctx, spec)
+			exec, err := executor.New(ctx, spec)
 			if err != nil {
 				cmdLog.WithError(err).Fatalln("failed to init executor")
 			}
-			resultC, found := executor.RunTarget(ctx, name)
-			if !found {
+			resultsC := make(chan []*executor.CommandResult, 100)
+			wg := new(sync.WaitGroup)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for results := range resultsC {
+					fmt.Printf("%s:\n", results[0].Name)
+					exportResultsText(spec, results, "\t")
+				}
+			}()
+			if found := exec.RunTarget(ctx, name, resultsC); !found {
 				cmdLog.Fatalln("target not found")
 			}
-			for results := range resultC {
-				fmt.Printf("%s:\n", results[0].Name)
-				exportResultsText(spec, results, "\t")
-			}
+			wg.Wait()
 		}
 	}
 }

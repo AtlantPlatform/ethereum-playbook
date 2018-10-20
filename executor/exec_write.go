@@ -29,8 +29,8 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 				})
 				if symbol := instance.FetchTokenSymbol(ctx); len(symbol) > 0 {
 					symbol = strings.ToUpper(symbol)
-					contractLog.WithField("symbol", symbol).Println("found token symbol")
 					denominations = append(denominations, strings.ToLower(symbol))
+					contractLog.WithField("symbol", symbol).Debugln("found token symbol")
 				}
 			}
 		}

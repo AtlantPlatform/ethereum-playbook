@@ -14,9 +14,8 @@ import (
 )
 
 func (e *Executor) runTarget(ctx model.AppContext,
-	targetName string, target model.TargetSpec) chan []*CommandResult {
+	targetName string, target model.TargetSpec, out chan<- []*CommandResult) {
 
-	out := make(chan []*CommandResult, 100)
 	defer close(out)
 
 	for _, targetCmd := range target {
@@ -36,25 +35,24 @@ func (e *Executor) runTarget(ctx model.AppContext,
 			out <- setName(results, cmdName)
 			if len(results) == 0 || results[0].Error != nil {
 				execLog.Errorln("stopping target execution — tx sumbit failed")
-				return out
+				return
 			}
 			if !targetCmd.IsDeferred() {
 				awaitTimeout, _ := e.root.Config.AwaitTimeoutDuration()
 				execLog.WithFields(log.Fields{
 					// "handle":  results[0].Result,
 					"timeout": awaitTimeout.String(),
-				}).Infoln("awaiting write command transaction")
+				}).Debugln("awaiting write command transaction")
 				awaitCtx, cancelFn := context.WithTimeout(ctx, awaitTimeout)
 				if err := e.awaitTx(awaitCtx, results[0].Result); err != nil {
 					execLog.WithError(err).Errorln("stopping target execution after await")
 					cancelFn()
-					return out
+					return
 				}
 				cancelFn()
 			}
 		}
 	}
-	return out
 }
 
 func setName(results []*CommandResult, name string) []*CommandResult {

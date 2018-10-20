@@ -40,11 +40,12 @@ func New(ctx model.AppContext, root *model.Spec) (*Executor, error) {
 	return executor, nil
 }
 
-func (e *Executor) RunTarget(ctx model.AppContext, targetName string) (<-chan []*CommandResult, bool) {
+func (e *Executor) RunTarget(ctx model.AppContext, targetName string, resultsC chan<- []*CommandResult) bool {
 	if target, ok := e.root.Targets[targetName]; ok {
-		return e.runTarget(ctx, targetName, target), true
+		e.runTarget(ctx, targetName, target, resultsC)
+		return true
 	}
-	return nil, false
+	return false
 }
 
 func (e *Executor) RunCommand(ctx model.AppContext, cmdName string) ([]*CommandResult, bool) {
