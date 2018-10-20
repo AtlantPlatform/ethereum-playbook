@@ -46,7 +46,7 @@ CALL:
     params:
       - {type: string, reference: $1}
 
-READ:
+VIEW:
   get-owner:
     instance: *PTO123
     method: owner

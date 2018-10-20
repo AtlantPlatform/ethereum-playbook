@@ -7,11 +7,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-type ReadCmds map[string]*ReadCmdSpec
+type ViewCmds map[string]*ViewCmdSpec
 
-func (cmds ReadCmds) Validate(ctx AppContext, spec *Spec) bool {
+func (cmds ViewCmds) Validate(ctx AppContext, spec *Spec) bool {
 	validateLog := log.WithFields(log.Fields{
-		"section": "ReadCmds",
+		"section": "ViewCmds",
 		"func":    "Validate",
 	})
 	for name, cmd := range cmds {
@@ -28,12 +28,12 @@ func (cmds ReadCmds) Validate(ctx AppContext, spec *Spec) bool {
 	return true
 }
 
-func (cmds ReadCmds) ReadCmdSpec(name string) (*ReadCmdSpec, bool) {
+func (cmds ViewCmds) ViewCmdSpec(name string) (*ViewCmdSpec, bool) {
 	spec, ok := cmds[name]
 	return spec, ok
 }
 
-type ReadCmdSpec struct {
+type ViewCmdSpec struct {
 	ParamSpec   `yaml:",inline"`
 	Description string `yaml:"desc"`
 
@@ -46,9 +46,9 @@ type ReadCmdSpec struct {
 	matching []*WalletSpec  `yaml:"-"`
 }
 
-func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool {
+func (spec *ViewCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool {
 	validateLog := log.WithFields(log.Fields{
-		"section": "ReadCommands",
+		"section": "ViewCommands",
 		"command": name,
 	})
 	var hasWalletName bool
@@ -115,15 +115,15 @@ func (spec *ReadCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 	return true
 }
 
-func (spec *ReadCmdSpec) MatchingWallets() []*WalletSpec {
+func (spec *ViewCmdSpec) MatchingWallets() []*WalletSpec {
 	return spec.matching
 }
 
-func (spec *ReadCmdSpec) CountArgsUsing(set map[int]struct{}) {
+func (spec *ViewCmdSpec) CountArgsUsing(set map[int]struct{}) {
 	spec.ParamSpec.CountArgsUsing(set)
 }
 
-func (spec *ReadCmdSpec) ArgCount() int {
+func (spec *ViewCmdSpec) ArgCount() int {
 	set := make(map[int]struct{})
 	spec.CountArgsUsing(set)
 	return len(set)

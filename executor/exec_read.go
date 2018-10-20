@@ -9,7 +9,7 @@ import (
 	"github.com/AtlantPlatform/ethereum-playbook/model"
 )
 
-func (e *Executor) runReadCmd(ctx model.AppContext, cmdSpec *model.ReadCmdSpec) []*CommandResult {
+func (e *Executor) runViewCmd(ctx model.AppContext, cmdSpec *model.ViewCmdSpec) []*CommandResult {
 	if !cmdSpec.Instance.IsDeployed() {
 		return []*CommandResult{{
 			Error: errors.New("contract instance is not deployed yet"),

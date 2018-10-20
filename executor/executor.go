@@ -52,8 +52,8 @@ func (e *Executor) RunCommand(ctx model.AppContext, cmdName string) ([]*CommandR
 	if cmdSpec, ok := e.root.CallCmds[cmdName]; ok {
 		return e.runCallCmd(ctx, cmdSpec), true
 	}
-	if cmdSpec, ok := e.root.ReadCmds[cmdName]; ok {
-		return e.runReadCmd(ctx, cmdSpec), true
+	if cmdSpec, ok := e.root.ViewCmds[cmdName]; ok {
+		return e.runViewCmd(ctx, cmdSpec), true
 	}
 	if cmdSpec, ok := e.root.WriteCmds[cmdName]; ok {
 		return e.runWriteCmd(ctx, cmdSpec), true

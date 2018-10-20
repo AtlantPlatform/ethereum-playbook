@@ -9,7 +9,7 @@ type Spec struct {
 	Contracts Contracts   `yaml:"CONTRACTS"`
 	Targets   Targets     `yaml:"TARGETS"`
 
-	ReadCmds  ReadCmds  `yaml:"READ"`
+	ViewCmds  ViewCmds  `yaml:"VIEW"`
 	WriteCmds WriteCmds `yaml:"WRITE"`
 	CallCmds  CallCmds  `yaml:"CALL"`
 
@@ -36,8 +36,8 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			return false
 		}
 	}
-	if spec.ReadCmds == nil && spec.WriteCmds == nil && spec.CallCmds == nil {
-		validateLog.Errorln("spec must contain at least one of READ, WRITE or CALL sections")
+	if spec.ViewCmds == nil && spec.WriteCmds == nil && spec.CallCmds == nil {
+		validateLog.Errorln("spec must contain at least one of VIEW, WRITE or CALL sections")
 		return false
 	}
 	if spec.Wallets != nil {
@@ -62,9 +62,9 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 			return false
 		}
 	}
-	if spec.ReadCmds != nil {
-		if !spec.ReadCmds.Validate(ctx, spec) {
-			validateLog.Errorln("read cmds spec validation failed")
+	if spec.ViewCmds != nil {
+		if !spec.ViewCmds.Validate(ctx, spec) {
+			validateLog.Errorln("view cmds spec validation failed")
 			return false
 		}
 	}
@@ -86,7 +86,7 @@ func (spec *Spec) Validate(ctx AppContext) bool {
 func (spec *Spec) CountArgsUsing(set map[int]struct{}, name string) {
 	if cmd, ok := spec.CallCmds[name]; ok {
 		cmd.CountArgsUsing(set)
-	} else if cmd, ok := spec.ReadCmds[name]; ok {
+	} else if cmd, ok := spec.ViewCmds[name]; ok {
 		cmd.CountArgsUsing(set)
 	} else if cmd, ok := spec.WriteCmds[name]; ok {
 		cmd.CountArgsUsing(set)
@@ -96,7 +96,7 @@ func (spec *Spec) CountArgsUsing(set map[int]struct{}, name string) {
 func (spec *Spec) ArgCount(name string) int {
 	if cmd, ok := spec.CallCmds[name]; ok {
 		return cmd.ArgCount()
-	} else if cmd, ok := spec.ReadCmds[name]; ok {
+	} else if cmd, ok := spec.ViewCmds[name]; ok {
 		return cmd.ArgCount()
 	} else if cmd, ok := spec.WriteCmds[name]; ok {
 		return cmd.ArgCount()

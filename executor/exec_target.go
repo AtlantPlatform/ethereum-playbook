@@ -23,8 +23,8 @@ func (e *Executor) runTarget(ctx model.AppContext,
 		if cmdSpec, ok := e.root.CallCmds[cmdName]; ok {
 			results := e.runCallCmd(ctx, cmdSpec)
 			out <- setName(results, cmdName)
-		} else if cmdSpec, ok := e.root.ReadCmds[cmdName]; ok {
-			results := e.runReadCmd(ctx, cmdSpec)
+		} else if cmdSpec, ok := e.root.ViewCmds[cmdName]; ok {
+			results := e.runViewCmd(ctx, cmdSpec)
 			out <- setName(results, cmdName)
 		} else if cmdSpec, ok := e.root.WriteCmds[cmdName]; ok {
 			execLog := log.WithFields(log.Fields{

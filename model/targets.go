@@ -49,9 +49,9 @@ func (spec TargetSpec) Validate(ctx AppContext, name string, root *Spec) bool {
 			}
 			continue
 		}
-		if _, found = root.ReadCmds[cmdName]; found {
+		if _, found = root.ViewCmds[cmdName]; found {
 			if cmdSpec.IsDeferred() {
-				validateLog.WithField("command", cmdName).Errorln("read commands are deferred by default")
+				validateLog.WithField("command", cmdName).Errorln("view commands are deferred by default")
 				return false
 			}
 			continue

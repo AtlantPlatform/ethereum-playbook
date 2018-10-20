@@ -96,17 +96,17 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 		app.Command(name, desc, newCommand(spec, name, argCount))
 	}
 
-	readCmdNames := make([]string, 0, len(spec.ReadCmds))
-	for name := range spec.ReadCmds {
-		readCmdNames = append(readCmdNames, name)
+	viewCmdNames := make([]string, 0, len(spec.ViewCmds))
+	for name := range spec.ViewCmds {
+		viewCmdNames = append(viewCmdNames, name)
 	}
-	sort.Strings(readCmdNames)
-	for _, name := range readCmdNames {
-		cmd, _ := spec.ReadCmds.ReadCmdSpec(name)
+	sort.Strings(viewCmdNames)
+	for _, name := range viewCmdNames {
+		cmd, _ := spec.ViewCmds.ViewCmdSpec(name)
 		desc := cmd.Description
 		argCount := cmd.ArgCount()
 		if len(desc) == 0 {
-			desc = fmt.Sprintf("Generic READ command, accepts %d args", argCount)
+			desc = fmt.Sprintf("Generic VIEW command, accepts %d args", argCount)
 		}
 		app.Command(name, desc, newCommand(spec, name, argCount))
 	}
