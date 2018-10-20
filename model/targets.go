@@ -17,9 +17,9 @@ func (targets Targets) Validate(ctx AppContext, spec *Spec) bool {
 		if _, ok := spec.uniqueNames[name]; ok {
 			validateLog.WithField("name", name).Errorln("target name is not unique")
 			return false
-		} else {
-			spec.uniqueNames[name] = struct{}{}
 		}
+		spec.uniqueNames[name] = struct{}{}
+
 		if !target.Validate(ctx, name, spec) {
 			return false
 		}

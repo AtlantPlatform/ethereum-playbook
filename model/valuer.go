@@ -16,7 +16,7 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 	valueStrParts := strings.Split(valueStr, " ")
 	for i, part := range valueStrParts {
 		if isWalletRef(part) {
-			ref, err := newWalletFieldReference(ctx, root, part)
+			ref, err := newWalletFieldReference(root, part)
 			if err != nil {
 				return nil, err
 			}
@@ -28,7 +28,7 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 			valueStrParts[i] = wallet.FieldValue(ref.FieldName).(*big.Int).String()
 		}
 		if isArgRef(part) {
-			ref, err := newArgReference(ctx, root, part)
+			ref, err := newArgReference(ctx, part)
 			if err != nil {
 				return nil, err
 			}
@@ -60,11 +60,13 @@ func (v Valuer) Parse(ctx AppContext, root *Spec, additionalDenominators []strin
 	}
 	evaler := NewEvaler()
 	var value *big.Int
-	if v, err := evaler.Run(valueStr, ExprTypeInterger); err != nil {
+
+	result, err := evaler.Run(valueStr, ExprTypeInterger)
+	if err != nil {
 		return nil, err
-	} else {
-		value = v.(*big.Int)
 	}
+	value = result.(*big.Int)
+
 	if len(valueDenomintator) > 0 {
 		value = denominateValue(value, valueDenomintator)
 	}

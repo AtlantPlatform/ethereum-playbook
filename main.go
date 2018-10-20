@@ -72,7 +72,7 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for name := range spec.Targets {
 		targetsNames = append(targetsNames, name)
 	}
-	sort.Sort(sort.StringSlice(targetsNames))
+	sort.Strings(targetsNames)
 	for _, name := range targetsNames {
 		targetSpec, _ := spec.Targets.TargetSpec(name)
 		argCount := targetSpec.ArgCount(spec)
@@ -85,7 +85,7 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for name := range spec.CallCmds {
 		callCmdNames = append(callCmdNames, name)
 	}
-	sort.Sort(sort.StringSlice(callCmdNames))
+	sort.Strings(callCmdNames)
 	for _, name := range callCmdNames {
 		cmd, _ := spec.CallCmds.CallCmdSpec(name)
 		desc := cmd.Description
@@ -100,7 +100,7 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for name := range spec.ReadCmds {
 		readCmdNames = append(readCmdNames, name)
 	}
-	sort.Sort(sort.StringSlice(readCmdNames))
+	sort.Strings(readCmdNames)
 	for _, name := range readCmdNames {
 		cmd, _ := spec.ReadCmds.ReadCmdSpec(name)
 		desc := cmd.Description
@@ -115,7 +115,7 @@ func registerCommands(app *cli.Cli, spec *model.Spec) {
 	for name := range spec.WriteCmds {
 		writeCmdNames = append(writeCmdNames, name)
 	}
-	sort.Sort(sort.StringSlice(writeCmdNames))
+	sort.Strings(writeCmdNames)
 	for _, name := range writeCmdNames {
 		cmd, _ := spec.WriteCmds.WriteCmdSpec(name)
 		desc := cmd.Description
@@ -280,13 +280,5 @@ func jsonPaddedString(v interface{}, padding string) string {
 }
 
 type ErrorObject struct {
-	Error string `json: "error"`
-}
-
-func yamlPrint(v interface{}) {
-	vv, err := yaml.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
-	log.Println(string(vv))
+	Error string `json:"error"`
 }

@@ -18,9 +18,8 @@ func (cmds WriteCmds) Validate(ctx AppContext, spec *Spec) bool {
 		if _, ok := spec.uniqueNames[name]; ok {
 			validateLog.WithField("name", name).Errorln("cmd name is not unique")
 			return false
-		} else {
-			spec.uniqueNames[name] = struct{}{}
 		}
+		spec.uniqueNames[name] = struct{}{}
 		if !cmd.Validate(ctx, name, spec) {
 			return false
 		}
@@ -65,12 +64,13 @@ func (spec *WriteCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool
 		// match all by default
 		spec.Wallet = "."
 	}
-	if rx, err := regexp.Compile(spec.Wallet); err != nil {
+	rx, err := regexp.Compile(spec.Wallet)
+	if err != nil {
 		validateLog.WithError(err).Errorln("failed to compile wallet regexp")
 		return false
-	} else {
-		spec.walletRx = rx
 	}
+	spec.walletRx = rx
+
 	if len(spec.Sticky) == 0 {
 		spec.Sticky = name
 	}
@@ -126,11 +126,11 @@ func (spec *WriteCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool
 			validateLog.Errorln("wallet reference is not allowed in 'to' field, must be name")
 			return false
 		}
-		if spec.To != "0x0" {
+		if spec.To != ZeroAddress {
 			if wallet, ok := root.Wallets.WalletSpec(spec.To); !ok {
 				validateLog.Errorln("recipient 'to' wallet name is not found")
 				return false
-			} else if wallet.Address == "" || wallet.Address == "0x0" {
+			} else if wallet.Address == "" || wallet.Address == ZeroAddress {
 				validateLog.Errorln("recipient 'to' wallet has no address. For 0x0, use '0x0' instead of name")
 				return false
 			} else {

@@ -26,8 +26,7 @@ func (c *Evaler) Run(expr string, expected ...ExprType) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	} else if code.Type() == nil {
-		err := errors.New("empty value")
-		return nil, err
+		return nil, errors.New("empty value")
 	}
 	var exprType ExprType
 	switch typ := code.Type().String(); typ {
@@ -38,8 +37,7 @@ func (c *Evaler) Run(expr string, expected ...ExprType) (interface{}, error) {
 	case "bool":
 		exprType = ExprTypeBool
 	default:
-		err := fmt.Errorf("unsupported expression type: %s", typ)
-		return nil, err
+		return nil, fmt.Errorf("unsupported expression type: %s", typ)
 	}
 	// this will be called before return, because initially the type may look like float,
 	// but be representable as a integer.
@@ -50,8 +48,7 @@ func (c *Evaler) Run(expr string, expected ...ExprType) (interface{}, error) {
 					return nil
 				}
 			}
-			err := fmt.Errorf("unexpected expression type: %s", typ)
-			return err
+			return fmt.Errorf("unexpected expression type: %s", typ)
 		}
 		return nil
 	}

@@ -68,7 +68,7 @@ func (spec *ConfigSpec) GasLimitInt() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint64(i), nil
+	return i, nil
 }
 
 func (spec *ConfigSpec) GasPriceInt() (*big.Int, bool) {

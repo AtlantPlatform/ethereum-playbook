@@ -57,13 +57,13 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 	}
 	var value model.ExtendedValue
 	if len(cmdSpec.Value) > 0 {
-		if v, err := cmdSpec.Value.Parse(ctx, e.root, denominations); err != nil {
+		v, err := cmdSpec.Value.Parse(ctx, e.root, denominations)
+		if err != nil {
 			result.Error = err
 			return []*CommandResult{result}
-		} else {
-			value.Value = v.Value
-			value.Denominator = v.Denominator
 		}
+		value.Value = v.Value
+		value.Denominator = v.Denominator
 	}
 
 	if len(value.Denominator) == 0 && len(cmdSpec.To) > 0 {

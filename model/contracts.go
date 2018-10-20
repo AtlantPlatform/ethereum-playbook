@@ -109,7 +109,7 @@ func (spec *ContractInstanceSpec) Validate(ctx AppContext, name string, src *sol
 		"section":  "ContractInstances",
 		"contract": name,
 	})
-	if len(spec.Address) == 0 || spec.Address == "0x0" {
+	if len(spec.Address) == 0 || spec.Address == ZeroAddress {
 		if len(spec.Name) == 0 {
 			validateLog.Errorln("contract instance cannot be deployed without name nor address specified")
 			return false
@@ -149,5 +149,5 @@ func (spec *ContractInstanceSpec) BoundContract() *ethfw.BoundContract {
 }
 
 func (spec *ContractInstanceSpec) IsDeployed() bool {
-	return len(spec.Address) > 0 && spec.Address != "0x0"
+	return len(spec.Address) > 0 && spec.Address != ZeroAddress
 }

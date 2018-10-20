@@ -64,33 +64,32 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 					spec.paramValues[paramID] = PlaceholderAddr // will be resolved later
 					return true
 				}
-				ref, err := newWalletFieldReference(ctx, root, referenceStr)
+				ref, err := newWalletFieldReference(root, referenceStr)
 				if err != nil {
 					refLog.WithError(err).Errorln("failed to resolve reference")
 					return false
 				}
 				spec.paramValues[paramID] = ref // will be resolved later
 				return true
-			} else {
-				referenceStrParts := strings.Split(referenceStr, " ")
-				for i, part := range referenceStrParts {
-					if isArgRef(part) {
-						ref, err := newArgReference(ctx, root, part)
-						if err != nil {
-							refLog.WithError(err).Errorln("failed to resolve reference")
-							return false
-						}
-						if ref.ArgID < 0 {
-							referenceStrParts[i] = part
-							continue
-						}
-						referenceStrParts[i] = ctx.AppCommandArgs()[ref.ArgID]
-					}
-				}
-				referenceStr = ""
-				valueStr = strings.Join(referenceStrParts, " ")
-				// continue with parsing
 			}
+			referenceStrParts := strings.Split(referenceStr, " ")
+			for i, part := range referenceStrParts {
+				if isArgRef(part) {
+					ref, err := newArgReference(ctx, part)
+					if err != nil {
+						refLog.WithError(err).Errorln("failed to resolve reference")
+						return false
+					}
+					if ref.ArgID < 0 {
+						referenceStrParts[i] = part
+						continue
+					}
+					referenceStrParts[i] = ctx.AppCommandArgs()[ref.ArgID]
+				}
+			}
+			referenceStr = ""
+			valueStr = strings.Join(referenceStrParts, " ")
+			// continue with parsing
 		} else if paramType == ParamTypeAddress {
 			// allow cross-reference to the wallet section,
 			// if param type is address, e.g. @bob
@@ -327,7 +326,7 @@ func parseParam(evaler *Evaler, typ ParamType, value string) (vv interface{}, ok
 	case ParamTypeUInt64:
 		res, compatible := parseUIntBits(64)
 		if compatible {
-			vv = uint64(res.(*big.Int).Uint64())
+			vv = res.(*big.Int).Uint64()
 			ok = true
 		}
 	}
@@ -341,10 +340,10 @@ func nillableStr(str interface{}) string {
 	return fmt.Sprintf("%v", str)
 }
 
-func newArgReference(ctx AppContext, root *Spec, value string) (*ArgReference, error) {
+func newArgReference(ctx AppContext, value string) (*ArgReference, error) {
 	argID, err := strconv.Atoi(value[1:])
 	if err != nil {
-		err := errors.New("reference must be of the form $0, $1, ...")
+		err := errors.New("reference must be of the form $0, $1, etc")
 		return nil, err
 	}
 	args := ctx.AppCommandArgs()
@@ -363,7 +362,7 @@ func newArgReference(ctx AppContext, root *Spec, value string) (*ArgReference, e
 func argReferenceID(value string) (int, error) {
 	argID, err := strconv.Atoi(value[1:])
 	if err != nil {
-		err := errors.New("reference must be of the form $0, $1, ...")
+		err := errors.New("reference must be of the form $0, $1, etc")
 		return -1, err
 	}
 	return argID, nil

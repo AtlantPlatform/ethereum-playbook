@@ -41,7 +41,6 @@ func prettifyValue(v interface{}) interface{} {
 	default:
 		return fmt.Sprintf("%v (%T)", vv, vv)
 	}
-	return ""
 }
 
 func prettify(v interface{}) interface{} {

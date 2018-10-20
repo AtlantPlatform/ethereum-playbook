@@ -21,6 +21,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+const ZeroAddress = "0x0"
+
 type Wallets map[string]*WalletSpec
 
 func (wallets Wallets) Validate(ctx AppContext, spec *Spec) bool {
@@ -48,7 +50,7 @@ func (wallets Wallets) GetOne(rx *regexp.Regexp, hash string) *WalletSpec {
 			names = append(names, name)
 		}
 	}
-	sort.Sort(sort.StringSlice(names))
+	sort.Strings(names)
 	ring := hashring.New(names)
 	name, _ := ring.GetNode(hash)
 	return wallets[name]
@@ -61,7 +63,7 @@ func (wallets Wallets) GetAll(rx *regexp.Regexp) []*WalletSpec {
 			names = append(names, name)
 		}
 	}
-	sort.Sort(sort.StringSlice(names))
+	sort.Strings(names)
 	specs := make([]*WalletSpec, 0, len(names))
 	for _, name := range names {
 		specs = append(specs, wallets[name])
@@ -91,7 +93,7 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 		"wallet":  name,
 	})
 	if len(spec.Address) > 0 {
-		if spec.Address != "0x0" && !common.IsHexAddress(spec.Address) {
+		if spec.Address != ZeroAddress && !common.IsHexAddress(spec.Address) {
 			validateLog.Errorln("address is not valid (must be hex string starting from 0x)")
 			return false
 		}
@@ -111,7 +113,7 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 			return false
 		}
 		accountFromPub := crypto.PubkeyToAddress(pk.PublicKey)
-		if len(spec.Address) == 0 || spec.Address == "0x0" {
+		if len(spec.Address) == 0 || spec.Address == ZeroAddress {
 			spec.Address = strings.ToLower(accountFromPub.Hex())
 			validateLog.WithFields(log.Fields{
 				"address": spec.Address,
@@ -167,7 +169,7 @@ func (spec *WalletSpec) Validate(ctx AppContext, name string) bool {
 			return false
 		} else {
 			accountFromKeyfile := keyFile.HexToAddress()
-			if len(spec.Address) == 0 || spec.Address == "0x0" {
+			if len(spec.Address) == 0 || spec.Address == ZeroAddress {
 				account = accountFromKeyfile
 				spec.Address = strings.ToLower(accountFromKeyfile.Hex())
 				validateLog.WithFields(log.Fields{
@@ -305,7 +307,7 @@ func (spec *WalletSpec) FieldValue(name FieldName) interface{} {
 	}
 }
 
-func newWalletFieldReference(ctx AppContext, root *Spec, value string) (*WalletFieldReference, error) {
+func newWalletFieldReference(root *Spec, value string) (*WalletFieldReference, error) {
 	refParts := strings.Split(value[1:], refDelim)
 	walletName := refParts[0]
 	if len(refParts) != 2 {
@@ -339,18 +341,6 @@ func newWalletFieldReference(ctx AppContext, root *Spec, value string) (*WalletF
 type WalletFieldReference struct {
 	WalletName string
 	FieldName  FieldName
-}
-
-func listAccounts(paths ...string) (accounts []common.Address) {
-	for _, keystorePath := range paths {
-		if err := forEachKeyFile(keystorePath, func(keyfile *keyFile) error {
-			accounts = append(accounts, keyfile.HexToAddress())
-			return nil
-		}); err != nil {
-			continue
-		}
-	}
-	return accounts
 }
 
 var errStopRange = errors.New("stop")

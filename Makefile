@@ -13,5 +13,5 @@ attach:
 install:
 	go install github.com/AtlantPlatform/ethereum-playbook
 
-# balances:
-# ethereum-playbook
+lint:
+	golangci-lint run

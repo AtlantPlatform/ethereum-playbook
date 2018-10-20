@@ -17,9 +17,9 @@ func (cmds CallCmds) Validate(ctx AppContext, spec *Spec) bool {
 		if _, ok := spec.uniqueNames[name]; ok {
 			validateLog.WithField("name", name).Errorln("cmd name is not unique")
 			return false
-		} else {
-			spec.uniqueNames[name] = struct{}{}
 		}
+		spec.uniqueNames[name] = struct{}{}
+
 		if !cmd.Validate(ctx, name, spec) {
 			return false
 		}
@@ -56,12 +56,13 @@ func (spec *CallCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool 
 		}
 		hasWalletName = true
 	}
-	if rx, err := regexp.Compile(spec.Wallet); err != nil {
+	rx, err := regexp.Compile(spec.Wallet)
+	if err != nil {
 		validateLog.WithError(err).Errorln("failed to compile wallet regexp")
 		return false
-	} else {
-		spec.walletRx = rx
 	}
+	spec.walletRx = rx
+
 	if hasWalletName {
 		spec.matching = root.Wallets.GetAll(spec.walletRx)
 		if len(spec.matching) == 0 {
