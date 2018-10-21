@@ -79,6 +79,9 @@ $ brew install ethereum-playbook
 ```
 
 ### All platforms
+
+Grab a release executable for your system in our [Releases](https://github.com/AtlantPlatform/ethereum-playbook/releases) section.
+
 To compile the tool manually, you need to install the [Go programming language](https://golang.org/dl/) compiler first. This is out of scope of this document. Once it is installed, there is a single command:
 
 ```bash
