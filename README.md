@@ -219,7 +219,7 @@ With `privkey` field it is possible to have an unprotected private key (generate
 
 Absolute paths are supported, however we discourage using absolute paths in the specification, as this will affect cross-platform use cases.
 
-Wallets keep some properties that can be fetched dynamically, for example, an ETH balance can be fetched, so it can be used in commands, also user can reference one wallet's password, more about field references later (see [Params](#Params)).
+Wallets keep some properties that can be fetched dynamically, for example, an ETH balance can be fetched, so it can be used in commands, also user can reference one wallet's password, more about field references later (see [Params](#params)).
 
 ### Contracts Management
 
@@ -250,7 +250,7 @@ VIEW:
 
 We could simply copy-pasted the two fields (`contract`, `address`), but anchor-alias approach is superior for DRY and keeping the contract specs in one place.
 
-When no address is specified, or the address is `0x0`, the contract is meant to be deployed. Playbook can deploy contracts, more on this later (see [Contract Transactions](#Contract Transactions)). However, when the new contract address is generated, it's user's responsibility to add that address into the instance spec. Because the specification is not dynamic, and is evaluated on the start only, with exception to some wallet properties such as balances.
+When no address is specified, or the address is `0x0`, the contract is meant to be deployed. Playbook can deploy contracts, more on this later (see [Contract Transactions](#contract-transactions)). However, when the new contract address is generated, it's user's responsibility to add that address into the instance spec. Because the specification is not dynamic, and is evaluated on the start only, with exception to some wallet properties such as balances.
 
 ### Calls
 
