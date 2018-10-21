@@ -5,9 +5,8 @@ INVENTORY:
 
 WALLETS:
   alice:
-    # address: not known
-    address: 0x3f635f774aee25aa9f757ee07f55683fc09064f1
-    keystore: "var/chain/keystore"
+    address: # not known yet, run "new-account"
+    keystore: "examples/keystore/"
     password: "1234"
 
 TARGETS:

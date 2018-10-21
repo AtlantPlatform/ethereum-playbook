@@ -115,6 +115,15 @@ func denominateValue(val *big.Int, denominator string) *big.Int {
 	}
 }
 
+func IsCommonDenominator(name string) bool {
+	for _, den := range commonDenominations {
+		if den == name {
+			return true
+		}
+	}
+	return false
+}
+
 var commonDenominations = []string{
 	"wei", "gwei", "ether",
 	"eth",

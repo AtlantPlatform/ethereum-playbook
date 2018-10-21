@@ -10,7 +10,7 @@ WALLETS:
     privkey: "41022453C949BAB4821358D2FA5B93CA6B046EFFA7B7A19765ACF8FD6AE8FA9B"
 
   bob:
-    keyfile: "var/chain/keystore/bob.json"
+    keyfile: "examples/keystore/bob.json"
     password: "1234"
 
   # foo3:
@@ -25,7 +25,7 @@ CONTRACTS:
     instances:
       - &PTO123
         contract: property-token
-        address: 0x37b691a77804b233758020814d05daf492f0d265
+        address: 0x0
       - &PTO124
         contract: property-token
         address: 0x0
@@ -74,10 +74,10 @@ WRITE:
     to: bob
     value: 100 gwei
 
-  send-1-eth:
+  send-1-ether:
     wallet: alice
     to: bob
-    value: 1 ETH
+    value: 1 ether
 
   deploy-property-token:
     wallet: bob
@@ -117,3 +117,6 @@ TARGETS:
     - transfer-50-tokens
     - send-25-tokens
     - token-balances
+  view:
+    - txinfo
+    - txreceipt

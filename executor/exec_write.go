@@ -66,7 +66,8 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 		value.Denominator = v.Denominator
 	}
 
-	if len(value.Denominator) == 0 && len(cmdSpec.To) > 0 {
+	denominatorCommonOrEmpty := len(value.Denominator) == 0 || model.IsCommonDenominator(value.Denominator)
+	if denominatorCommonOrEmpty && len(cmdSpec.To) > 0 {
 		// just send ether
 		to := common.HexToAddress(cmdSpec.To)
 		callMsg := ethereum.CallMsg{
@@ -106,7 +107,7 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 		result.Result = "tx:" + strings.ToLower(signedTx.Hash().Hex())
 		return []*CommandResult{result}
 	}
-	if len(value.Denominator) == 0 && !cmdSpec.Instance.IsDeployed() {
+	if denominatorCommonOrEmpty && !cmdSpec.Instance.IsDeployed() {
 		// need to deploy an instance
 		params := replaceWalletPlaceholders(cmdSpec.ParamValues(), account)
 		params = replaceReferences(ctx, params, e.root)

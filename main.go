@@ -25,7 +25,7 @@ import (
 var app = cli.App("ethereum-playbook", "Ethereum contracts deployment and management tool.")
 
 var (
-	specPath  = flag.String("f", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
+	specPath  = flag.String("f", "playbook.yml", "Custom path to playbook.yml spec file.")
 	solcPath  = flag.String("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
 	nodeGroup = flag.String("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
 	printHelp = flag.Bool("h", false, "Print help.")
@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	app.StringOpt("f", "ethereum-playbook.yml", "Custom path to ethereum-playbook.yml spec file.")
+	app.StringOpt("f", "playbook.yml", "Custom path to playbook.yml spec file.")
 	app.StringOpt("s", "solc", "Name or path of Solidity compiler (solc, not solcjs).")
 	app.StringOpt("g", "genesis", "Inventory group name, corresponding to Geth nodes.")
 	app.BoolOpt("h", false, "Print help.")
