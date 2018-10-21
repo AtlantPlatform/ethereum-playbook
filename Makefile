@@ -18,3 +18,8 @@ lint:
 
 demo:
 	asciicast2gif -t solarized-light https://asciinema.org/a/mwGXhJ6p9hAGmiI12Dw7hxNoy.json token-demo.gif
+
+xgo:
+	xgo -out bin/ethereum-playbook \
+		--targets=windows/386,windows/amd64,darwin/amd64,linux/amd64,linux/arm-7,linux/386 \
+		github.com/AtlantPlatform/ethereum-playbook

@@ -24,6 +24,7 @@
 #   go-tests = true
 #   unused-packages = true
 
+ignored = ["github.com/AtlantPlatform/yaml", "github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1"]
 
 [[constraint]]
   branch = "master"
