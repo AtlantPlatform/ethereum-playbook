@@ -15,3 +15,6 @@ install:
 
 lint:
 	golangci-lint run
+
+demo:
+	asciicast2gif -t solarized-light https://asciinema.org/a/mwGXhJ6p9hAGmiI12Dw7hxNoy.json token-demo.gif
