@@ -1,3 +1,6 @@
 [submodule "examples/BaseSecurityToken"]
 	path = examples/contracts/BaseSecurityToken
-	url = git@github.com:AtlantPlatform/BaseSecurityToken.git
+	url = https://github.com/AtlantPlatform/ethereum-playbook.git
+[submodule "examples/contracts/BaseSecurityToken"]
+	path = examples/contracts/BaseSecurityToken
+	url = https://github.com/AtlantPlatform/BaseSecurityToken.git
