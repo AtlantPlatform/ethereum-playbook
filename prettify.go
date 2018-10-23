@@ -36,8 +36,28 @@ func prettifyValue(v interface{}) interface{} {
 		return strings.ToLower(vv.Hex())
 	case bool:
 		return vv
+	case int:
+		return vv
+	case int8:
+		return vv
+	case int16:
+		return vv
+	case int32:
+		return vv
+	case int64:
+		return vv
+	case uint:
+		return vv
+	case uint8:
+		return vv
+	case uint16:
+		return vv
+	case uint32:
+		return vv
+	case uint64:
+		return vv
 	case nil:
-		return ""
+		return nil
 	default:
 		return fmt.Sprintf("%v (%T)", vv, vv)
 	}
@@ -46,9 +66,11 @@ func prettifyValue(v interface{}) interface{} {
 func prettify(v interface{}) interface{} {
 	switch vv := v.(type) {
 	case []interface{}:
+		formatted := make([]interface{}, len(vv))
 		for i, vvv := range vv {
-			vv[i] = prettifyValue(vvv)
+			formatted[i] = prettifyValue(vvv)
 		}
+		return formatted
 	case map[string]interface{}:
 		container := make(map[string]interface{})
 		for key, vvv := range vv {
@@ -58,5 +80,4 @@ func prettify(v interface{}) interface{} {
 	default:
 		return prettifyValue(v)
 	}
-	return ""
 }
