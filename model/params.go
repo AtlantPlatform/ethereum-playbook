@@ -81,8 +81,11 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 						return false
 					}
 					if ref.ArgID < 0 {
-						referenceStrParts[i] = part
-						continue
+						// the whole param unresolved
+						referenceStr = ""
+						referenceStrParts = nil
+						valueStr = ""
+						break
 					}
 					referenceStrParts[i] = ctx.AppCommandArgs()[ref.ArgID]
 				}
@@ -111,16 +114,18 @@ func (spec *ParamSpec) validateParam(ctx AppContext,
 				return true
 			}
 		}
-		v, ok := parseParam(evaler, paramType, valueStr)
-		if !ok {
-			validateLog.WithFields(log.Fields{
-				"offset": paramID,
-				"type":   string(paramType),
-				"value":  valueStr,
-			}).Errorln("param parsing error, check type")
-			return false
+		if len(valueStr) > 0 {
+			if v, ok := parseParam(evaler, paramType, valueStr); ok {
+				spec.paramValues[paramID] = v
+			} else {
+				validateLog.WithFields(log.Fields{
+					"offset": paramID,
+					"type":   string(paramType),
+					"value":  valueStr,
+				}).Errorln("param parsing error, check type")
+				return false
+			}
 		}
-		spec.paramValues[paramID] = v
 	case string:
 		spec.paramValues[paramID] = param
 	default:
