@@ -229,7 +229,7 @@ func parseParam(evaler *Evaler, typ ParamType, value string) (vv interface{}, ok
 	parseUIntBits := func(bits int) (interface{}, bool) {
 		if result, err := evaler.Run(value, ExprTypeInterger); err == nil {
 			tmp := result.(*big.Int)
-			if tmp.Sign() > 0 {
+			if tmp.Sign() >= 0 {
 				if bits == 0 || tmp.BitLen() <= bits {
 					return tmp, true
 				}
