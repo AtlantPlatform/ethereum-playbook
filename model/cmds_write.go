@@ -20,8 +20,11 @@ func (cmds WriteCmds) Validate(ctx AppContext, spec *Spec) bool {
 			return false
 		}
 		spec.uniqueNames[name] = struct{}{}
-		if !cmd.Validate(ctx, name, spec) {
-			return false
+
+		if ctx.AppCommand() == name {
+			if !cmd.Validate(ctx, name, spec) {
+				return false
+			}
 		}
 	}
 	return true

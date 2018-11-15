@@ -42,21 +42,33 @@ func (spec TargetSpec) Validate(ctx AppContext, name string, root *Spec) bool {
 	for _, cmdSpec := range spec {
 		cmdName := cmdSpec.Name()
 		var found bool
-		if _, found = root.CallCmds[cmdName]; found {
+		if cmd, isFound := root.CallCmds[cmdName]; found {
 			if cmdSpec.IsDeferred() {
 				validateLog.WithField("command", cmdName).Errorln("call commands are deferred by default")
 				return false
 			}
+			if !cmd.Validate(ctx, cmdName, root) {
+				return false
+			}
+			found = isFound
 			continue
 		}
-		if _, found = root.ViewCmds[cmdName]; found {
+		if cmd, isFound := root.ViewCmds[cmdName]; found {
 			if cmdSpec.IsDeferred() {
 				validateLog.WithField("command", cmdName).Errorln("view commands are deferred by default")
 				return false
 			}
+			if !cmd.Validate(ctx, cmdName, root) {
+				return false
+			}
+			found = isFound
 			continue
 		}
-		if _, found = root.WriteCmds[cmdName]; found {
+		if cmd, isFound := root.WriteCmds[cmdName]; found {
+			if !cmd.Validate(ctx, cmdName, root) {
+				return false
+			}
+			found = isFound
 			continue
 		}
 		if !found {
