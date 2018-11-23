@@ -334,6 +334,12 @@ func parseParam(evaler *Evaler, typ ParamType, value string) (vv interface{}, ok
 			vv = res.(*big.Int).Uint64()
 			ok = true
 		}
+	default:
+		if strings.HasPrefix(string(typ), "bytes") {
+			lengthStr := strings.TrimPrefix(string(typ), "bytes")
+			length, _ := strconv.Atoi(lengthStr)
+			vv, ok = createStaticBytes(length, value)
+		}
 	}
 	return vv, ok
 }
@@ -375,4 +381,151 @@ func argReferenceID(value string) (int, error) {
 
 type ArgReference struct {
 	ArgID int
+}
+
+func createStaticBytes(length int, value string) (interface{}, bool) {
+	var buf []byte
+	if strings.HasPrefix(value, "0x") {
+		buf = make([]byte, len(value)/2-1)
+		if _, err := hex.Decode(buf, []byte(value[2:])); err != nil {
+			return nil, false
+		}
+	} else {
+		buf = []byte(value)
+	}
+	if len(buf) != length {
+		return nil, false
+	}
+	switch length {
+	case 1:
+		dst := [1]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 2:
+		dst := [2]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 3:
+		dst := [3]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 4:
+		dst := [4]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 5:
+		dst := [5]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 6:
+		dst := [6]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 7:
+		dst := [7]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 8:
+		dst := [8]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 9:
+		dst := [9]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 10:
+		dst := [10]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 11:
+		dst := [11]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 12:
+		dst := [12]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 13:
+		dst := [13]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 14:
+		dst := [14]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 15:
+		dst := [15]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 16:
+		dst := [16]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 17:
+		dst := [17]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 18:
+		dst := [18]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 19:
+		dst := [19]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 20:
+		dst := [20]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 21:
+		dst := [21]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 22:
+		dst := [22]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 23:
+		dst := [23]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 24:
+		dst := [24]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 25:
+		dst := [25]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 26:
+		dst := [26]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 27:
+		dst := [27]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 28:
+		dst := [28]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 29:
+		dst := [29]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 30:
+		dst := [30]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 31:
+		dst := [31]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	case 32:
+		dst := [32]byte{}
+		copy(dst[:], buf)
+		return dst, true
+	default:
+		return nil, false
+	}
 }
