@@ -109,7 +109,7 @@ func (spec *WriteCmdSpec) Validate(ctx AppContext, name string, root *Spec) bool
 		} else {
 			var found bool
 			for _, instance := range contract.Instances {
-				if instance.Address == address {
+				if strings.ToLower(instance.Address) == address {
 					found = true
 					spec.Instance = instance
 					break
