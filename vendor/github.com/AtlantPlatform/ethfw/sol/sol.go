@@ -93,6 +93,7 @@ func (s *solCompiler) Compile(prefix, path string) (map[string]*Contract, error)
 	}
 	contracts := make(map[string]*Contract, len(result.Contracts))
 	for id, c := range result.Contracts {
+		id = strings.TrimPrefix(id, prefix) // useful for Windows
 		idParts := strings.Split(id, ":")
 		if len(idParts) == 1 {
 			err := fmt.Errorf("solc: found an unnamed contract in output: %s", id)
