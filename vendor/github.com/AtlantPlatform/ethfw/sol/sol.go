@@ -29,6 +29,7 @@ type Contract struct {
 }
 
 type Compiler interface {
+	SetAllowPaths(paths []string) Compiler
 	Compile(prefix, path string) (map[string]*Contract, error)
 }
 
@@ -43,7 +44,8 @@ func NewSolCompiler(solcPath string) (Compiler, error) {
 }
 
 type solCompiler struct {
-	solcPath string
+	solcPath   string
+	allowPaths []string
 }
 
 func (s *solCompiler) verify() error {
@@ -60,6 +62,11 @@ func (s *solCompiler) verify() error {
 	return nil
 }
 
+func (s *solCompiler) SetAllowPaths(paths []string) Compiler {
+	s.allowPaths = paths
+	return s
+}
+
 type solcContract struct {
 	ABI string `json:"abi"`
 	Bin string `json:"bin"`
@@ -71,9 +78,15 @@ type solcOutput struct {
 }
 
 func (s *solCompiler) Compile(prefix, path string) (map[string]*Contract, error) {
+	args := []string{s.solcPath}
+	if len(s.allowPaths) > 0 {
+		args = append(args, "--allow-paths", strings.Join(s.allowPaths, ","))
+	}
+	args = append(args, "--combined-json", "bin,abi", filepath.Join(prefix, path))
+
 	cmd := exec.Cmd{
 		Path:   s.solcPath,
-		Args:   []string{s.solcPath, "--combined-json", "bin,abi", filepath.Join(prefix, path)},
+		Args:   args,
 		Dir:    prefix,
 		Stderr: os.Stderr,
 	}

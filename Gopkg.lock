@@ -8,25 +8,34 @@
     ".",
     "sol"
   ]
-  revision = "3f03c19ce8bb8817160955aa386df3a3bcc914fd"
+  revision = "a7d862726a07ad91acd33c5947f401820ecb8b4e"
 
 [[projects]]
   name = "github.com/Sirupsen/logrus"
   packages = ["."]
-  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
-  version = "v1.2.0"
+  revision = "e1e72e9de974bd926e5c56f83753fba2df402ce5"
+  version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/allegro/bigcache"
+  packages = [
+    ".",
+    "queue"
+  ]
+  revision = "f31987a23e44c5121ef8c8b2f2ea2e8ffa37b068"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "5faa74ffbed7096292069fdcd0eae96146a3158a"
+  revision = "8f049bdb8feb7d7d5f1a9b9cd854396112fb0c0e"
 
 [[projects]]
   branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
-  revision = "3dcf298fed2d5fd65918dc560b3942b2aa0629e8"
+  revision = "ed77733ec07dfc8a513741138419b8d9d3de9d2d"
 
 [[projects]]
   name = "github.com/deckarep/golang-set"
@@ -50,7 +59,6 @@
     "core/types",
     "crypto",
     "crypto/secp256k1",
-    "crypto/sha3",
     "ethclient",
     "ethdb",
     "event",
@@ -62,8 +70,8 @@
     "rpc",
     "trie"
   ]
-  revision = "58632d44021bf095b43a1bb2443e6e3690a94739"
-  version = "v1.8.18"
+  revision = "9dc5d1a915ac0e0bd8429d6ac41df50eec91de5f"
+  version = "v1.8.21"
 
 [[projects]]
   name = "github.com/go-stack/stack"
@@ -157,7 +165,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "f9080354173f192dfc8821931eacf9cfd6819253"
+  revision = "b001fa50d6b27f3f0bb175a87d0cb55426d0a0ae"
 
 [[projects]]
   branch = "master"
@@ -165,15 +173,16 @@
   packages = [
     "pbkdf2",
     "scrypt",
+    "sha3",
     "ssh/terminal"
   ]
-  revision = "3d3f9f413869b949e48070b5bc593aa22cc2b8f2"
+  revision = "c7b33c32a30bae9ba07d37eb4d86f1f8b0f644fb"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["websocket"]
-  revision = "adae6a3d119ae4890b46832a2e88a95adc62b8e7"
+  revision = "d26f9f9a57f3fab6a695bec0d84433c2c50f8bbf"
 
 [[projects]]
   branch = "master"
@@ -182,7 +191,7 @@
     "unix",
     "windows"
   ]
-  revision = "62eef0e2fa9b2c385f7b2778e763486da6880d37"
+  revision = "302c3dd5f1cc82baae8e44d9c3178e89b6e2b345"
 
 [[projects]]
   branch = "v2"
