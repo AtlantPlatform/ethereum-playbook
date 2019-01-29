@@ -54,9 +54,10 @@ func (contracts Contracts) FindByTokenSymbol(symbol string) (*ContractInstanceSp
 }
 
 type ContractSpec struct {
-	Name      string                  `yaml:"name"`
-	SolPath   string                  `yaml:"sol"`
-	Instances []*ContractInstanceSpec `yaml:"instances"`
+	Name          string                  `yaml:"name"`
+	SolPath       string                  `yaml:"sol"`
+	SolAllowPaths []string                `yaml:"allow"`
+	Instances     []*ContractInstanceSpec `yaml:"instances"`
 
 	src *sol.Contract `yaml:"-"`
 }
@@ -77,11 +78,19 @@ func (spec *ContractSpec) Validate(ctx AppContext, name string) bool {
 	if !filepath.IsAbs(spec.SolPath) {
 		spec.SolPath = filepath.FromSlash(spec.SolPath)
 	}
+
+	var allowedPaths []string
+	for _, allowedRelative := range spec.SolAllowPaths {
+		allowedRelative = filepath.FromSlash(allowedRelative)
+		allowedPaths = append(allowedPaths,
+			filepath.Join(ctx.SpecDir(), allowedRelative))
+	}
 	if !isFile(filepath.Join(ctx.SpecDir(), spec.SolPath)) {
 		validateLog.Errorln("sol file is not found or cannot be read")
 		return false
 	}
-	contracts, err := ctx.SolcCompiler().Compile(ctx.SpecDir(), spec.SolPath)
+	compiler := ctx.SolcCompiler().SetAllowPaths(allowedPaths)
+	contracts, err := compiler.Compile(ctx.SpecDir(), spec.SolPath)
 	if err != nil {
 		validateLog.WithError(err).Errorln("sol files compilation failed")
 		return false
