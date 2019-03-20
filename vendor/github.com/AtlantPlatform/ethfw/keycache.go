@@ -23,6 +23,7 @@ type KeyCache interface {
 	SetPath(account common.Address, path string) bool
 	UnsetPath(account common.Address, path string)
 	PrivateKey(account common.Address, password string) (key *ecdsa.PrivateKey, ok bool)
+	SetPrivateKey(account common.Address, pk *ecdsa.PrivateKey)
 	UnsetKey(account common.Address, password string)
 	SignerFn(account common.Address, password string) bind.SignerFn
 }
@@ -70,6 +71,13 @@ func (k *keyCache) UnsetKey(account common.Address, password string) {
 	h := hashAccountPass(account, password)
 	k.keysMux.Lock()
 	delete(k.keys, string(h))
+	k.keysMux.Unlock()
+}
+
+func (k *keyCache) SetPrivateKey(account common.Address, pk *ecdsa.PrivateKey) {
+	h := hashAccountPass(account, "")
+	k.keysMux.Lock()
+	k.keys[string(h)] = pk
 	k.keysMux.Unlock()
 }
 
