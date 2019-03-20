@@ -94,6 +94,8 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 			if pk = wallet.PrivKeyECDSA(); pk == nil {
 				result.Error = errors.New("failed to get account private key")
 				return []*CommandResult{result}
+			} else {
+				e.keycache.SetPrivateKey(account, pk)
 			}
 		}
 		chainID, _ := e.root.Config.ChainIDInt()
@@ -111,6 +113,9 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 		// need to deploy an instance
 		params := replaceWalletPlaceholders(cmdSpec.ParamValues(), account)
 		params = replaceReferences(ctx, params, e.root)
+		if pk := wallet.PrivKeyECDSA(); pk != nil {
+			e.keycache.SetPrivateKey(account, pk)
+		}
 		opts := &bind.TransactOpts{
 			From:     account,
 			Nonce:    nil, // pending state
@@ -162,6 +167,9 @@ func (e *Executor) runWriteCmd(ctx model.AppContext, cmdSpec *model.WriteCmdSpec
 	} else {
 		params = replaceWalletPlaceholders(cmdSpec.ParamValues(), account)
 		params = replaceReferences(ctx, params, e.root)
+	}
+	if pk := wallet.PrivKeyECDSA(); pk != nil {
+		e.keycache.SetPrivateKey(account, pk)
 	}
 	opts := &bind.TransactOpts{
 		From:     account,
