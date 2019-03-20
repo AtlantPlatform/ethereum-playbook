@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 )
 
 // The ABI holds information about a contract's context and available
@@ -81,14 +80,39 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
 	// we need to decide whether we're calling a method or an event
 	if method, ok := abi.Methods[name]; ok {
 		if len(output)%32 != 0 {
+			if msg := getMessage(output); len(msg) > 0 {
+				return fmt.Errorf("abi: thrown message: %s", msg)
+			}
 			return fmt.Errorf("abi: improperly formatted output: %s - Bytes: [%+v]", string(output), output)
 		}
-		log.Println("KAWABANGA:", "method", name, "method obj:", method, "output:", output)
 		return method.Outputs.Unpack(v, output)
 	} else if event, ok := abi.Events[name]; ok {
 		return event.Inputs.Unpack(v, output)
 	}
 	return fmt.Errorf("abi: could not locate named method or event")
+}
+
+func getMessage(data []byte) []byte {
+	var inMessage bool
+	var message []byte
+	offset := bytes.IndexByte(data, 0x20)
+	if offset < 0 || offset >= len(data)-1 {
+		return nil
+	}
+	for i := offset + 1; i < len(data); i++ {
+		if !inMessage && data[i] != 0x00 {
+			inMessage = true
+			if data[i] != 0x4e && data[i] != 0x1a {
+				message = append(message, data[i])
+			}
+		} else if inMessage {
+			if data[i] == 0x00 {
+				return bytes.TrimSpace(message)
+			}
+			message = append(message, data[i])
+		}
+	}
+	return bytes.TrimSpace(message)
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface

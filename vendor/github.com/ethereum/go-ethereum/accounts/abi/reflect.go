@@ -72,6 +72,10 @@ func mustArrayToByteSlice(value reflect.Value) reflect.Value {
 // set is a bit more lenient when it comes to assignment and doesn't force an as
 // strict ruleset as bare `reflect` does.
 func set(dst, src reflect.Value) error {
+	if dst.IsNil() {
+		dst.Set(src)
+		return nil
+	}
 	dstType, srcType := dst.Type(), src.Type()
 	switch {
 	case dstType.Kind() == reflect.Interface:

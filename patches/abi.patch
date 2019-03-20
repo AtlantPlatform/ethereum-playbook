@@ -1,18 +1,20 @@
 diff --git a/vendor/github.com/ethereum/go-ethereum/accounts/abi/abi.go b/vendor/github.com/ethereum/go-ethereum/accounts/abi/abi.go
-index 535e5d7..040ac0f 100644
+index 7545387..b16e4f7 100644
 --- a/vendor/github.com/ethereum/go-ethereum/accounts/abi/abi.go
 +++ b/vendor/github.com/ethereum/go-ethereum/accounts/abi/abi.go
-@@ -82,6 +82,9 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
+@@ -81,9 +80,11 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
  	// we need to decide whether we're calling a method or an event
  	if method, ok := abi.Methods[name]; ok {
  		if len(output)%32 != 0 {
 +			if msg := getMessage(output); len(msg) > 0 {
 +				return fmt.Errorf("abi: thrown message: %s", msg)
 +			}
- 			return fmt.Errorf("abi: improperly formatted output")
+ 			return fmt.Errorf("abi: improperly formatted output: %s - Bytes: [%+v]", string(output), output)
  		}
  		return method.Outputs.Unpack(v, output)
-@@ -91,6 +94,29 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
+ 	} else if event, ok := abi.Events[name]; ok {
+ 		return event.Inputs.Unpack(v, output)
+@@ -91,6 +92,29 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
  	return fmt.Errorf("abi: could not locate named method or event")
  }
  
@@ -42,3 +44,18 @@ index 535e5d7..040ac0f 100644
  // UnmarshalJSON implements json.Unmarshaler interface
  func (abi *ABI) UnmarshalJSON(data []byte) error {
  	var fields []struct {
+diff --git a/vendor/github.com/ethereum/go-ethereum/accounts/abi/reflect.go b/vendor/github.com/ethereum/go-ethereum/accounts/abi/reflect.go
+index 1b0bb00..8af361d 100644
+--- a/vendor/github.com/ethereum/go-ethereum/accounts/abi/reflect.go
++++ b/vendor/github.com/ethereum/go-ethereum/accounts/abi/reflect.go
+@@ -72,6 +72,10 @@ func mustArrayToByteSlice(value reflect.Value) reflect.Value {
+ // set is a bit more lenient when it comes to assignment and doesn't force an as
+ // strict ruleset as bare `reflect` does.
+ func set(dst, src reflect.Value) error {
++	if dst.IsNil() {
++		dst.Set(src)
++		return nil
++	}
+ 	dstType, srcType := dst.Type(), src.Type()
+ 	switch {
+ 	case dstType.Kind() == reflect.Interface:
