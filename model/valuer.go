@@ -103,7 +103,6 @@ func denominateValue(val *big.Int, denominator string) *big.Int {
 	case "gwei":
 		v := big.NewInt(1)
 		v = v.Mul(val, big.NewInt(1e9))
-		v = v.Mul(v, val)
 		return v
 	case "ether":
 		v := big.NewInt(1)

@@ -76,6 +76,9 @@ func (c *Evaler) Run(expr string, expected ...ExprType) (interface{}, error) {
 			b, _ := f.Int(nil)
 			return b, nil
 		}
+		if err := checkExpected(exprType); err != nil {
+			return nil, err
+		}
 		return f, nil
 	case ExprTypeInterger:
 		b, ok := big.NewInt(0).SetString(exprValue, 10)
