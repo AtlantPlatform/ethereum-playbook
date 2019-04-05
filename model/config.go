@@ -22,7 +22,7 @@ var DefaultConfigSpec = &ConfigSpec{
 	// mainnet: 1
 	// others: https://eips.ethereum.org/EIPS/eip-155
 	ChainID:  "1",
-	GasPrice: ethfw.Gwei(40).String(),
+	GasPrice: ethfw.Gwei(8).String(),
 	// hard limit, real limit is estimated
 	GasLimit:     "10000000",
 	AwaitTimeout: "10m",

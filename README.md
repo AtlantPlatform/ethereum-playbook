@@ -530,7 +530,7 @@ And the last, but not the least, the config section with some global parameters.
 
 ```yaml
 CONFIG:
-  gasPrice: 40000000000 # 40 gwei
+  gasPrice: 10000000000 # 10 gwei
   gasLimit: 10000000 # hard limit
   chainID: 1 # https://eips.ethereum.org/EIPS/eip-155
   awaitTimeout: 10m # when executing target
