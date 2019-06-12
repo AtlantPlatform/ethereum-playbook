@@ -80,9 +80,6 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
 	// we need to decide whether we're calling a method or an event
 	if method, ok := abi.Methods[name]; ok {
 		if len(output)%32 != 0 {
-			if msg := getMessage(output); len(msg) > 0 {
-				return fmt.Errorf("abi: thrown message: %s", msg)
-			}
 			return fmt.Errorf("abi: improperly formatted output: %s - Bytes: [%+v]", string(output), output)
 		}
 		return method.Outputs.Unpack(v, output)
@@ -90,29 +87,6 @@ func (abi ABI) Unpack(v interface{}, name string, output []byte) (err error) {
 		return event.Inputs.Unpack(v, output)
 	}
 	return fmt.Errorf("abi: could not locate named method or event")
-}
-
-func getMessage(data []byte) []byte {
-	var inMessage bool
-	var message []byte
-	offset := bytes.IndexByte(data, 0x20)
-	if offset < 0 || offset >= len(data)-1 {
-		return nil
-	}
-	for i := offset + 1; i < len(data); i++ {
-		if !inMessage && data[i] != 0x00 {
-			inMessage = true
-			if data[i] != 0x4e && data[i] != 0x1a {
-				message = append(message, data[i])
-			}
-		} else if inMessage {
-			if data[i] == 0x00 {
-				return bytes.TrimSpace(message)
-			}
-			message = append(message, data[i])
-		}
-	}
-	return bytes.TrimSpace(message)
 }
 
 // UnmarshalJSON implements json.Unmarshaler interface
@@ -162,7 +136,7 @@ func (abi *ABI) UnmarshalJSON(data []byte) error {
 // returns nil if none found
 func (abi *ABI) MethodById(sigdata []byte) (*Method, error) {
 	if len(sigdata) < 4 {
-		return nil, fmt.Errorf("data too short (%d bytes) for abi method lookup", len(sigdata))
+		return nil, fmt.Errorf("data too short (% bytes) for abi method lookup", len(sigdata))
 	}
 	for _, method := range abi.Methods {
 		if bytes.Equal(method.Id(), sigdata[:4]) {
