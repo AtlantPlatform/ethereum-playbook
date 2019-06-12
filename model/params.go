@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/ethereum/go-ethereum/common"
+	log "github.com/sirupsen/logrus"
 )
 
 type ParamSpec struct {

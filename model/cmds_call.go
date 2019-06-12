@@ -3,7 +3,7 @@ package model
 import (
 	"regexp"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type CallCmds map[string]*CallCmdSpec

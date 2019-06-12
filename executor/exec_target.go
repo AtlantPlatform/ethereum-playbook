@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/ethereum/go-ethereum/common"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/ethereum-playbook/model"
 )

@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"github.com/AtlantPlatform/ethfw"
-	log "github.com/Sirupsen/logrus"
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/AtlantPlatform/ethereum-playbook/model"
 )

@@ -1,6 +1,6 @@
 package model
 
-import log "github.com/Sirupsen/logrus"
+import log "github.com/sirupsen/logrus"
 
 type Spec struct {
 	Config    *ConfigSpec `yaml:"CONFIG"`

@@ -14,12 +14,12 @@ import (
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
-	log "github.com/Sirupsen/logrus"
 	cli "github.com/jawher/mow.cli"
+	log "github.com/sirupsen/logrus"
+	yaml "github.com/xlab/yamlx"
 
 	"github.com/AtlantPlatform/ethereum-playbook/executor"
 	"github.com/AtlantPlatform/ethereum-playbook/model"
-	"github.com/AtlantPlatform/yaml"
 )
 
 var app = cli.App("ethereum-playbook", "Ethereum contracts deployment and management tool.")

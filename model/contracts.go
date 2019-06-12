@@ -6,9 +6,9 @@ import (
 
 	"github.com/AtlantPlatform/ethfw"
 	"github.com/AtlantPlatform/ethfw/sol"
-	log "github.com/Sirupsen/logrus"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	log "github.com/sirupsen/logrus"
 )
 
 type Contracts map[string]*ContractSpec

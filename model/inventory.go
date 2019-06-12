@@ -1,8 +1,8 @@
 package model
 
 import (
-	log "github.com/Sirupsen/logrus"
 	"github.com/ethereum/go-ethereum/rpc"
+	log "github.com/sirupsen/logrus"
 )
 
 type Inventory map[string]InventorySpec

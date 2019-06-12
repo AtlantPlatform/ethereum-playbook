@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/serialx/hashring"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"

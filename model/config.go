@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/AtlantPlatform/ethfw"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type ConfigSpec struct {
