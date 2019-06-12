@@ -1,4 +1,4 @@
-# ethereum-playbook ![](https://img.shields.io/badge/version-1.0.0-blue.svg) ![](https://img.shields.io/badge/lines-2500-silver.svg)
+# ethereum-playbook ![](https://img.shields.io/badge/version-1.1.0-blue.svg) ![](https://img.shields.io/badge/lines-2500-silver.svg)
 
 <img src="https://cl.ly/9d02d217b423/download/playbook.png" alt="ethereum-playbook" width="600px" />
 
