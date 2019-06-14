@@ -1,47 +1,72 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
 package ethfw
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
-type Uniqify struct {
-	mux   *sync.Mutex
-	tasks map[string]*sync.WaitGroup
+// Uniquify is a type of advanced mutex. It allows to create named resource locks.
+type Uniquify interface {
+	// Call executes only one callable with same id at a time.
+	// Multilpe asynchronous calls with same id will be executed sequentally.
+	Call(id string, callable func() error) error
 }
 
-func NewUniqify() *Uniqify {
-	return &Uniqify{
-		mux:   new(sync.Mutex),
+// NewUniquify returns a new thread-safe uniquify object.
+func NewUniquify() Uniquify {
+	return &uniquify{
 		tasks: make(map[string]*sync.WaitGroup),
 	}
 }
 
-func (u *Uniqify) Call(id string, callable func() error) error {
-	errC := make(chan error)
+type uniquify struct {
+	lock  sync.Mutex
+	tasks map[string]*sync.WaitGroup
+}
 
+func (u *uniquify) Call(id string, callable func() error) error {
+	var errC = make(chan error)
 	func() {
-		u.mux.Lock()
-		defer u.mux.Unlock()
-		prevWG := u.tasks[id]
-		if prevWG != nil {
+		u.lock.Lock()
+		defer u.lock.Unlock()
+		oldWg := u.tasks[id]
+		if oldWg != nil {
 			go func() {
-				prevWG.Wait()
+				oldWg.Wait()
 				go func() {
 					errC <- u.Call(id, callable)
 				}()
 			}()
+			return
 		}
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
 		u.tasks[id] = wg
+
 		go func() {
+			var err error
+			defer func() {
+				errC <- err
+
+				u.lock.Lock()
+				defer u.lock.Unlock()
+				delete(u.tasks, id)
+			}()
 			defer wg.Done()
-			errC <- callable()
-			u.mux.Lock()
-			delete(u.tasks, id)
-			u.mux.Unlock()
+			defer func(err *error) {
+				if panicData := recover(); panicData != nil {
+					if e, ok := panicData.(error); ok {
+						*err = e
+						return
+					}
+					*err = fmt.Errorf("%+v", panicData)
+				}
+			}(&err)
+			err = callable()
 		}()
 	}()
 

@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -34,7 +34,7 @@ func NewKeyCache() KeyCache {
 		pathsMux: new(sync.RWMutex),
 		keys:     make(map[string]*ecdsa.PrivateKey),
 		keysMux:  new(sync.RWMutex),
-		guard:    NewUniqify(),
+		guard:    NewUniquify(),
 	}
 }
 
@@ -43,7 +43,7 @@ type keyCache struct {
 	pathsMux *sync.RWMutex
 	keys     map[string]*ecdsa.PrivateKey
 	keysMux  *sync.RWMutex
-	guard    *Uniqify
+	guard    Uniquify
 }
 
 // SetPath sets the wallet path for a given account. Returns true if the new path

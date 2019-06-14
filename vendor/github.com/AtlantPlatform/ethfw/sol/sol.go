@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -30,7 +30,7 @@ type Contract struct {
 
 type Compiler interface {
 	SetAllowPaths(paths []string) Compiler
-	Compile(prefix, path string) (map[string]*Contract, error)
+	Compile(prefix, path string, optimize int) (map[string]*Contract, error)
 }
 
 func NewSolCompiler(solcPath string) (Compiler, error) {
@@ -77,13 +77,15 @@ type solcOutput struct {
 	Version   string                  `json:"version"`
 }
 
-func (s *solCompiler) Compile(prefix, path string) (map[string]*Contract, error) {
+func (s *solCompiler) Compile(prefix, path string, optimize int) (map[string]*Contract, error) {
 	args := []string{s.solcPath}
 	if len(s.allowPaths) > 0 {
 		args = append(args, "--allow-paths", strings.Join(s.allowPaths, ","))
 	}
 	args = append(args, "--combined-json", "bin,abi", filepath.Join(prefix, path))
-
+	if optimize > 0 {
+		args = append(args, "--optimize", fmt.Sprintf("--optimize-runs=%d", optimize))
+	}
 	cmd := exec.Cmd{
 		Path:   s.solcPath,
 		Args:   args,

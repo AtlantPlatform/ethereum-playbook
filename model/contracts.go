@@ -56,6 +56,7 @@ func (contracts Contracts) FindByTokenSymbol(symbol string) (*ContractInstanceSp
 type ContractSpec struct {
 	Name          string                  `yaml:"name"`
 	SolPath       string                  `yaml:"sol"`
+	Optimize      int                     `yaml:"optimize"`
 	SolAllowPaths []string                `yaml:"allow"`
 	Instances     []*ContractInstanceSpec `yaml:"instances"`
 
@@ -90,7 +91,7 @@ func (spec *ContractSpec) Validate(ctx AppContext, name string) bool {
 		return false
 	}
 	compiler := ctx.SolcCompiler().SetAllowPaths(allowedPaths)
-	contracts, err := compiler.Compile(ctx.SpecDir(), spec.SolPath)
+	contracts, err := compiler.Compile(ctx.SpecDir(), spec.SolPath, spec.Optimize)
 	if err != nil {
 		validateLog.WithError(err).Errorln("sol files compilation failed")
 		return false

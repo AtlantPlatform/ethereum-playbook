@@ -1,4 +1,4 @@
-// Copyright 2017, 2018 Tensigma Ltd. All rights reserved.
+// Copyright 2017-2019 Tensigma Ltd. All rights reserved.
 // Use of this source code is governed by Microsoft Reference Source
 // License (MS-RSL) that can be found in the LICENSE file.
 
@@ -25,7 +25,7 @@ func NewNonceCache() NonceCache {
 		mux:    new(sync.RWMutex),
 		nonces: make(map[common.Address]uint64),
 		locks:  make(map[common.Address]*sync.RWMutex),
-		guard:  NewUniqify(),
+		guard:  NewUniquify(),
 	}
 }
 
@@ -33,7 +33,7 @@ type nonceCache struct {
 	mux    *sync.RWMutex
 	nonces map[common.Address]uint64
 	locks  map[common.Address]*sync.RWMutex
-	guard  *Uniqify
+	guard  Uniquify
 }
 
 // Serialize serializes access to the nonce cache for all goroutines, all nonce increments should be done
